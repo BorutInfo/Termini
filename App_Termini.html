@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>App_Termini</title>
+<style>
+/* ====================================================================
+   App_Termini — SKLOP 1: mreza in poteg (samo videz, nic se ne shrani)
+   ==================================================================== */
+:root{
+  --papir:#f4f3ef;
+  --bel:#ffffff;
+  --crta:#d9d6cd;
+  --tekst:#1c1c1a;
+  --sivo:#78756c;
+  --prosto:#3f7d58;
+  --prosto-svetlo:#d6ead9;
+  --rumena:#fff4c2;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papir);color:var(--tekst);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 12px calc(14px + env(safe-area-inset-bottom));
+  max-width:560px;margin:0 auto;
+  overscroll-behavior:none;
+}
+
+/* ---------- glava ---------- */
+.glava{padding:12px 2px 9px;border-bottom:1px solid var(--crta)}
+.ime{font-size:19px;font-weight:700}
+.kraj{font-size:12.5px;color:var(--sivo);margin-top:1px}
+.navodilo{
+  background:var(--rumena);border-radius:8px;
+  padding:8px 11px;font-size:13.5px;margin:10px 0 12px;
+}
+
+/* ---------- mreza ---------- */
+.mreza{display:flex;gap:7px;touch-action:none;user-select:none;-webkit-user-select:none}
+.ure{flex:0 0 42px}
+.ure .praznaGlava{height:34px}
+.ura-napis{
+  font-size:11px;color:var(--sivo);text-align:right;padding-right:5px;
+  line-height:1;position:relative;top:-5px;
+}
+.dnevi{flex:1;display:flex;gap:7px}
+.dan{flex:1;min-width:0}
+.dan-glava{height:34px;text-align:center;line-height:1.15}
+.dan-glava b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+.dan-glava span{font-size:10px;color:var(--sivo)}
+.stolpec{position:relative}
+.polje{border-bottom:1px solid #ececea}
+.polje.odprto{background:var(--bel);border-left:1px solid var(--crta);border-right:1px solid var(--crta)}
+.polje.prvo-odprto{border-top:1px solid var(--crta);border-top-left-radius:5px;border-top-right-radius:5px}
+.polje.zadnje-odprto{border-bottom:1px solid var(--crta);border-bottom-left-radius:5px;border-bottom-right-radius:5px}
+/* CRTKANA OBROBA = ure zunaj delovnika tega dne */
+.polje.zaprto{background:transparent;border-left:1px dashed #c3c0b8;border-right:1px dashed #c3c0b8;border-bottom:none}
+.polje.oznaceno{background:var(--prosto);border-bottom-color:rgba(255,255,255,.22)}
+.polje.polna-ura{border-bottom-color:#dedbd4}
+
+/* ---------- seznam razponov ---------- */
+.seznam{margin-top:14px;border-top:1px solid var(--crta);padding-top:11px}
+.seznam-naslov{
+  font-size:11px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--sivo);margin-bottom:7px;
+}
+.razpon{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--prosto-svetlo);border:1px solid #bcd8c2;border-radius:8px;
+  padding:9px 11px;margin-bottom:6px;font-size:15px;font-weight:600;
+}
+.razpon button{
+  border:none;background:none;color:var(--sivo);font-size:19px;
+  line-height:1;padding:2px 4px;cursor:pointer;
+}
+.prazno{color:var(--sivo);font-size:13.5px;padding:4px 2px 10px}
+
+.gumb-dodaj{
+  width:100%;border:1px dashed #b9b6ad;background:none;border-radius:8px;
+  padding:10px;font-size:14.5px;color:var(--sivo);margin-bottom:12px;cursor:pointer;
+  font-family:inherit;
+}
+.gumb-potrdi{
+  width:100%;border:none;background:#1c1c1a;color:#fff;border-radius:9px;
+  padding:13px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.pod-gumbom{font-size:11.5px;color:var(--sivo);text-align:center;margin-top:9px}
+
+/* ---------- okno Dodaj razpon ---------- */
+.zavesa{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:#f2f1ec;border-top:1px solid var(--crta);
+  border-radius:16px 16px 0 0;box-shadow:0 -6px 22px rgba(0,0,0,.16);
+  padding:14px 14px calc(16px + env(safe-area-inset-bottom));
+  max-width:560px;margin:0 auto;
+}
+.zavesa[hidden]{display:none}
+.senca{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:19}
+.senca[hidden]{display:none}
+.zav-naslov{font-size:16.5px;font-weight:700;text-align:center;margin-bottom:11px}
+.dnevi-izbira{display:flex;gap:7px;margin-bottom:13px}
+.dan-gumb{
+  flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--crta);
+  background:#fff;font-size:14.5px;font-weight:600;color:var(--sivo);
+  cursor:pointer;font-family:inherit;
+}
+.dan-gumb.izbran{background:#1c1c1a;color:#fff;border-color:#1c1c1a}
+.par{display:flex;gap:11px}
+.polje-kolo{flex:1;background:#fff;border:1px solid var(--crta);border-radius:10px;padding:8px}
+.polje-kolo .oznaka{
+  font-size:11px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--sivo);text-align:center;margin-bottom:5px;
+}
+.polje-kolo select{
+  width:100%;font-size:19px;font-weight:700;text-align:center;
+  border:none;background:none;font-family:inherit;color:var(--tekst);
+  padding:5px 0;-webkit-appearance:none;appearance:none;text-align-last:center;
+}
+.zav-opozorilo{
+  font-size:12.5px;color:#a8342a;text-align:center;margin-top:9px;min-height:17px;
+}
+.zav-gumbi{display:flex;gap:9px;margin-top:11px}
+.zav-gumbi button{
+  flex:1;padding:12px;border-radius:9px;font-weight:700;font-size:15px;
+  cursor:pointer;font-family:inherit;
+}
+.preklic{background:#fff;border:1px solid var(--crta);color:var(--sivo)}
+.potrdi-okno{background:#1c1c1a;border:none;color:#fff}
+
+/* ---------- obvestilo ---------- */
+.obvestilo{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:30;
+  background:#e8e6df;color:var(--tekst);border-radius:9px;
+  padding:11px 16px;font-size:14px;box-shadow:0 3px 12px rgba(0,0,0,.16);
+}
+.obvestilo[hidden]{display:none}
+</style>
+</head>
+<body>
+
+<div class="glava">
+  <div class="ime" id="imeUcenca"></div>
+  <div class="kraj" id="krajInDnevi"></div>
+</div>
+
+<div class="navodilo" id="navodilo"></div>
+
+<div class="mreza" id="mreza"></div>
+
+<div class="seznam">
+  <div class="seznam-naslov">Prosti termini</div>
+  <div id="seznamRazponov"></div>
+  <button class="gumb-dodaj" id="gumbDodaj">+&nbsp; Dodaj razpon</button>
+  <button class="gumb-potrdi" id="gumbPotrdi">Potrdi</button>
+  <div class="pod-gumbom">Povezavo lahko odprete znova in popravite.</div>
+</div>
+
+<div class="senca" id="senca" hidden></div>
+<div class="zavesa" id="zavesa" hidden>
+  <div class="zav-naslov">Dodaj razpon</div>
+  <div class="dnevi-izbira" id="izbiraDni"></div>
+  <div class="par">
+    <div class="polje-kolo">
+      <div class="oznaka">od</div>
+      <select id="koloOd"></select>
+    </div>
+    <div class="polje-kolo">
+      <div class="oznaka">do</div>
+      <select id="koloDo"></select>
+    </div>
+  </div>
+  <div class="zav-opozorilo" id="zavOpozorilo"></div>
+  <div class="zav-gumbi">
+    <button class="preklic" id="gumbPreklic">Prekliči</button>
+    <button class="potrdi-okno" id="gumbDodajPotrdi">Dodaj</button>
+  </div>
+</div>
+
+<div class="obvestilo" id="obvestilo" hidden></div>
+
+<script>
+/* ====================================================================
+   SKLOP1 — mreza in poteg. Nic se ne shranjuje. Podatki so zapisani tu.
+   ==================================================================== */
+
+var NABOR = {
+  lokacija: 'OŠ Trnovo',
+  ucenec:   'Ana Kovač',
+  korak:    15,                    /* minute na kvadratek */
+  dnevi: [
+    { kratica:'sre', ime:'sreda',   od:'13:00', do:'17:30' },
+    { kratica:'čet', ime:'četrtek', od:'15:00', do:'20:00' }
+  ]
+};
+
+/* ---------- pomozne racunske funkcije ---------- */
+function vMinute(t){ var d = t.split(':'); return (+d[0])*60 + (+d[1]); }
+function vNapis(m){
+  var u = Math.floor(m/60), mi = m%60;
+  return (u<10?'0':'') + u + '.' + (mi<10?'0':'') + mi;
+}
+
+var KORAK   = NABOR.korak;
+var ZACETEK = Math.min.apply(null, NABOR.dnevi.map(function(d){ return vMinute(d.od); }));
+var KONEC   = Math.max.apply(null, NABOR.dnevi.map(function(d){ return vMinute(d.do); }));
+var VRSTIC  = (KONEC - ZACETEK) / KORAK;
+
+/* oznake[indeksDneva][indeksVrstice] = true / false */
+var oznake = NABOR.dnevi.map(function(){ return new Array(VRSTIC).fill(false); });
+
+function jeOdprto(di, vi){
+  var m = ZACETEK + vi*KORAK;
+  var d = NABOR.dnevi[di];
+  return m >= vMinute(d.od) && m < vMinute(d.do);
+}
+
+/* ---------- risanje mreze ---------- */
+var elMreza = document.getElementById('mreza');
+var visinaVrstice = 20;
+
+function izracunajVisino(){
+  /* mreza se stisne toliko, da gre na zaslon; najmanj 13 px na vrstico */
+  var nadMrezo = elMreza.offsetTop;         /* od vrha strani, ne od vrha zaslona */
+  var podMrezo = 250;                       /* seznam, gumba, zracnost */
+  var naVoljo  = window.innerHeight - nadMrezo - podMrezo;
+  var v = Math.floor(naVoljo / VRSTIC);
+  return Math.max(13, Math.min(26, v));
+}
+
+function narisiMrezo(){
+  visinaVrstice = izracunajVisino();
+  elMreza.innerHTML = '';
+
+  /* stolpec z urami */
+  var ure = document.createElement('div');
+  ure.className = 'ure';
+  var prazna = document.createElement('div');
+  prazna.className = 'praznaGlava';
+  ure.appendChild(prazna);
+  for (var vi = 0; vi < VRSTIC; vi++){
+    var m = ZACETEK + vi*KORAK;
+    var n = document.createElement('div');
+    n.className = 'ura-napis';
+    n.style.height = visinaVrstice + 'px';
+    n.textContent = (m % 60 === 0) ? vNapis(m) : '';
+    ure.appendChild(n);
+  }
+  elMreza.appendChild(ure);
+
+  /* stolpci dni */
+  var dnevi = document.createElement('div');
+  dnevi.className = 'dnevi';
+  NABOR.dnevi.forEach(function(d, di){
+    var dan = document.createElement('div');
+    dan.className = 'dan';
+
+    var glava = document.createElement('div');
+    glava.className = 'dan-glava';
+    glava.innerHTML = '<b>' + d.kratica + '</b><span>' +
+      vNapis(vMinute(d.od)) + '–' + vNapis(vMinute(d.do)) + '</span>';
+    dan.appendChild(glava);
+
+    var stolpec = document.createElement('div');
+    stolpec.className = 'stolpec';
+    for (var vi = 0; vi < VRSTIC; vi++){
+      var p = document.createElement('div');
+      p.className = 'polje';
+      p.style.height = visinaVrstice + 'px';
+      p.dataset.dan = di;
+      p.dataset.vrstica = vi;
+      if (jeOdprto(di, vi)){
+        p.classList.add('odprto');
+        if (!jeOdprto(di, vi-1)) p.classList.add('prvo-odprto');
+        if (!jeOdprto(di, vi+1)) p.classList.add('zadnje-odprto');
+        if (((ZACETEK + (vi+1)*KORAK) % 60) === 0) p.classList.add('polna-ura');
+        if (oznake[di][vi]) p.classList.add('oznaceno');
+      } else {
+        p.classList.add('zaprto');
+      }
+      stolpec.appendChild(p);
+    }
+    dan.appendChild(stolpec);
+    dnevi.appendChild(dan);
+  });
+  elMreza.appendChild(dnevi);
+}
+
+/* osvezi samo barve, brez ponovnega risanja */
+function osveziBarve(){
+  var polja = elMreza.querySelectorAll('.polje.odprto');
+  for (var i = 0; i < polja.length; i++){
+    var p = polja[i];
+    p.classList.toggle('oznaceno', !!oznake[+p.dataset.dan][+p.dataset.vrstica]);
+  }
+}
+
+/* ---------- POTEG: pointer dogodki ---------- */
+var vlecem = false, nacin = true, nacinDolocen = false;   /* nacin true = risi, false = brisi */
+
+function poljeNaTocki(x, y){
+  var el = document.elementFromPoint(x, y);
+  if (el && el.classList && el.classList.contains('odprto')) return el;
+  return null;
+}
+function oznaciPolje(el){
+  if (!el) return;
+  var di = +el.dataset.dan, vi = +el.dataset.vrstica;
+  if (oznake[di][vi] === nacin) return;
+  oznake[di][vi] = nacin;
+  el.classList.toggle('oznaceno', nacin);
+}
+
+elMreza.addEventListener('pointerdown', function(e){
+  /* poteg se sme zaceti tudi na zaprtem polju; oznacevanje se zacne,
+     ko prst pride na prvo odprto polje */
+  var vPolju = e.target && e.target.closest && e.target.closest('.polje');
+  if (!vPolju) return;
+  e.preventDefault();
+  vlecem = true;
+  nacinDolocen = false;
+  var el = poljeNaTocki(e.clientX, e.clientY);
+  if (el){
+    nacin = !oznake[+el.dataset.dan][+el.dataset.vrstica];   /* prvo odprto polje odloci */
+    nacinDolocen = true;
+    oznaciPolje(el);
+  }
+  elMreza.setPointerCapture(e.pointerId);
+});
+
+elMreza.addEventListener('pointermove', function(e){
+  if (!vlecem) return;
+  e.preventDefault();
+  var el = poljeNaTocki(e.clientX, e.clientY);
+  if (!el) return;
+  if (!nacinDolocen){
+    nacin = !oznake[+el.dataset.dan][+el.dataset.vrstica];
+    nacinDolocen = true;
+  }
+  oznaciPolje(el);
+});
+
+function koncajPoteg(e){
+  if (!vlecem) return;
+  vlecem = false;
+  try { elMreza.releasePointerCapture(e.pointerId); } catch(x){}
+  narisiSeznam();
+}
+elMreza.addEventListener('pointerup', koncajPoteg);
+elMreza.addEventListener('pointercancel', koncajPoteg);
+
+/* ---------- razponi iz oznak ---------- */
+function razponi(){
+  var out = [];
+  NABOR.dnevi.forEach(function(d, di){
+    var zacetekNiza = -1;
+    for (var vi = 0; vi <= VRSTIC; vi++){
+      var oznacen = (vi < VRSTIC) && oznake[di][vi];
+      if (oznacen && zacetekNiza === -1) zacetekNiza = vi;
+      if (!oznacen && zacetekNiza !== -1){
+        out.push({
+          dan: di,
+          odVi: zacetekNiza,
+          doVi: vi,
+          od: ZACETEK + zacetekNiza*KORAK,
+          do: ZACETEK + vi*KORAK
+        });
+        zacetekNiza = -1;
+      }
+    }
+  });
+  return out;
+}
+
+var elSeznam = document.getElementById('seznamRazponov');
+
+function narisiSeznam(){
+  var r = razponi();
+  elSeznam.innerHTML = '';
+  if (r.length === 0){
+    var prazno = document.createElement('div');
+    prazno.className = 'prazno';
+    prazno.textContent = 'Ni še nobenega termina.';
+    elSeznam.appendChild(prazno);
+    return;
+  }
+  r.forEach(function(x){
+    var vrstica = document.createElement('div');
+    vrstica.className = 'razpon';
+    var besedilo = document.createElement('span');
+    besedilo.textContent = NABOR.dnevi[x.dan].kratica + ' ' + vNapis(x.od) + ' – ' + vNapis(x.do);
+    var krizec = document.createElement('button');
+    krizec.textContent = '✕';
+    krizec.setAttribute('aria-label', 'Zbriši razpon');
+    krizec.addEventListener('click', function(){
+      for (var vi = x.odVi; vi < x.doVi; vi++) oznake[x.dan][vi] = false;
+      osveziBarve();
+      narisiSeznam();
+    });
+    vrstica.appendChild(besedilo);
+    vrstica.appendChild(krizec);
+    elSeznam.appendChild(vrstica);
+  });
+}
+
+/* ---------- okno Dodaj razpon ---------- */
+var elZavesa = document.getElementById('zavesa');
+var elSenca  = document.getElementById('senca');
+var elOd = document.getElementById('koloOd');
+var elDo = document.getElementById('koloDo');
+var elOpozorilo = document.getElementById('zavOpozorilo');
+var izbraniDan = 0;
+
+function napolniIzbiroDni(){
+  var ovoj = document.getElementById('izbiraDni');
+  ovoj.innerHTML = '';
+  NABOR.dnevi.forEach(function(d, di){
+    var g = document.createElement('button');
+    g.className = 'dan-gumb' + (di === izbraniDan ? ' izbran' : '');
+    g.textContent = d.kratica;
+    g.addEventListener('click', function(){
+      izbraniDan = di;
+      napolniIzbiroDni();
+      napolniKolesa();
+    });
+    ovoj.appendChild(g);
+  });
+}
+
+function napolniKolesa(){
+  var d = NABOR.dnevi[izbraniDan];
+  var od = vMinute(d.od), do_ = vMinute(d.do);
+  elOd.innerHTML = '';
+  for (var m = od; m < do_; m += KORAK){
+    var o = document.createElement('option');
+    o.value = m; o.textContent = vNapis(m);
+    elOd.appendChild(o);
+  }
+  napolniKoloDo();
+}
+function napolniKoloDo(){
+  var d = NABOR.dnevi[izbraniDan];
+  var do_ = vMinute(d.do);
+  var zacni = (+elOd.value) + KORAK;
+  elDo.innerHTML = '';
+  for (var m = zacni; m <= do_; m += KORAK){
+    var o = document.createElement('option');
+    o.value = m; o.textContent = vNapis(m);
+    elDo.appendChild(o);
+  }
+}
+elOd.addEventListener('change', function(){ napolniKoloDo(); elOpozorilo.textContent = ''; });
+
+function odpriOkno(){
+  izbraniDan = 0;
+  napolniIzbiroDni();
+  napolniKolesa();
+  elOpozorilo.textContent = '';
+  elZavesa.hidden = false;
+  elSenca.hidden = false;
+}
+function zapriOkno(){
+  elZavesa.hidden = true;
+  elSenca.hidden = true;
+}
+
+document.getElementById('gumbDodaj').addEventListener('click', odpriOkno);
+document.getElementById('gumbPreklic').addEventListener('click', zapriOkno);
+elSenca.addEventListener('click', zapriOkno);
+
+document.getElementById('gumbDodajPotrdi').addEventListener('click', function(){
+  var od = +elOd.value, do_ = +elDo.value;
+  if (do_ <= od){ elOpozorilo.textContent = 'Konec mora biti za začetkom'; return; }
+  var odVi = (od - ZACETEK) / KORAK, doVi = (do_ - ZACETEK) / KORAK;
+  for (var vi = odVi; vi < doVi; vi++) oznake[izbraniDan][vi] = true;
+  osveziBarve();
+  narisiSeznam();
+  zapriOkno();
+});
+
+/* ---------- Potrdi (v sklopu 1 se se ne shranjuje) ---------- */
+var elObvestilo = document.getElementById('obvestilo');
+var casovnik = null;
+function pokaziObvestilo(besedilo){
+  elObvestilo.textContent = besedilo;
+  elObvestilo.hidden = false;
+  clearTimeout(casovnik);
+  casovnik = setTimeout(function(){ elObvestilo.hidden = true; }, 2200);
+}
+document.getElementById('gumbPotrdi').addEventListener('click', function(){
+  pokaziObvestilo('Sklop 1 – shranjevanje pride v sklopu 2');
+});
+
+/* ---------- zagon ---------- */
+document.getElementById('imeUcenca').textContent = NABOR.ucenec;
+document.getElementById('krajInDnevi').textContent =
+  NABOR.lokacija + ' · ' + NABOR.dnevi.map(function(d){
+    return d.kratica + ' ' + vNapis(vMinute(d.od)) + '–' + vNapis(vMinute(d.do));
+  }).join(' · ');
+document.getElementById('navodilo').innerHTML =
+  'Povlecite čez ure, ko je <b>' + NABOR.ucenec.split(' ')[0] + '</b> prosta.';
+
+narisiMrezo();
+narisiSeznam();
+
+var prerisi = null;
+window.addEventListener('resize', function(){
+  clearTimeout(prerisi);
+  prerisi = setTimeout(function(){ narisiMrezo(); }, 120);
+});
+</script>
+</body>
+</html>
