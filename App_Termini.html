@@ -8,7 +8,7 @@
 /* ====================================================================
    App_Termini — SKLOP 1: mreza in poteg (samo videz, nic se ne shrani)
 
-   RAZLICICA-05SEP-PRESTREZANJE
+   RAZLICICA-05SEP-RAZDALJA40
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -217,8 +217,17 @@ var NABOR = {
    Kako: ce drugi dotik pride na isto mesto v manj kot 350 tisocink sekunde,
    ga zavrnemo. Scipanje z dvema prstoma se pri tem ne dotaknemo — gib z vec
    kot enim prstom je posebej izvzet.
+
+   MEJI STA IZMERJENI, ne ocenjeni (Preizkus-tap-mere.html, 5. 9. 2026):
+   - cas 350 ms: poskusi pri 366, 432, 446 in 534 ms se NISO povecali,
+     torej iPhone jih sam ne steje vec za dvojni tap. 350 je znotraj okna.
+   - razdalja 40 pik: prej je bilo 30 in edini poskus, ki se je prebil,
+     je imel razdaljo 32 pik pri razmiku 216 ms. Meja je bila prenizka za
+     dve piki. 40 pik je nad izmerjenim odpovedanim poskusom in hkrati pod
+     razmikom med gumbi krizec v seznamu (50 pik), da se ta ne motita.
    ==================================================================== */
 (function(){
+  var PRAG_CAS = 350, PRAG_PIK = 40;
   var zadnjiCas = 0, zadnjiX = 0, zadnjiY = 0, vecPrstov = false;
 
   document.addEventListener('touchstart', function(e){
@@ -237,9 +246,10 @@ var NABOR = {
 
     var t = e.changedTouches[0];
     var zdaj = Date.now();
-    var blizu = Math.abs(t.clientX - zadnjiX) < 30 && Math.abs(t.clientY - zadnjiY) < 30;
+    var dx = t.clientX - zadnjiX, dy = t.clientY - zadnjiY;
+    var blizu = Math.sqrt(dx*dx + dy*dy) < PRAG_PIK;
 
-    if (zdaj - zadnjiCas < 350 && blizu){
+    if (zdaj - zadnjiCas < PRAG_CAS && blizu){
       if (e.cancelable) e.preventDefault();   /* drugi tap zavrnjen */
       zadnjiCas = 0;
       return;
