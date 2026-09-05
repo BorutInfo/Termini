@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preizkus — mere dvojnega tapa</title>
+<style>
+/* RAZLICICA-05SEP-MERE */
+body{margin:0 auto;padding:0 12px 40px;background:#f4f3ef;color:#1c1c1a;max-width:560px;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+h1{font-size:18px;margin:12px 0 2px}
+.kaj{font-size:13px;color:#78756c;margin:0 0 10px}
+.merilec{position:sticky;top:0;z-index:5;background:#fff4c2;border:1px solid #e5d78a;
+  border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;justify-content:space-between}
+.merilec b{font-size:20px;font-variant-numeric:tabular-nums}
+.tapaj{height:150px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;background:#3f7d58;
+  user-select:none;-webkit-user-select:none;margin-bottom:10px;text-align:center;padding:0 16px}
+.tapaj.mreza{background:#2f6a49;touch-action:none;height:110px}
+.naslovDnevnika{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#78756c;margin:14px 0 6px}
+.vrstica{background:#fff;border:1px solid #d9d6cd;border-left-width:5px;border-radius:8px;
+  padding:8px 10px;margin-bottom:6px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.vrstica.dobro{border-left-color:#3f7d58}
+.vrstica.slabo{border-left-color:#a8342a;background:#fdf4f3}
+.vrstica b{font-weight:700}
+.prazno{color:#78756c;font-size:13px}
+.gumbPobrisi{width:100%;padding:10px;border:1px solid #d9d6cd;background:#fff;border-radius:9px;
+  font-family:inherit;font-size:14px;color:#78756c;margin-top:4px}
+.noga{font-size:12px;color:#78756c;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+
+<h1>Preizkus — mere dvojnega tapa</h1>
+<p class="kaj">Prestrezanje je nastavljeno enako kot v aplikaciji: <b>350 tisočink sekunde</b> in
+<b>30 pik</b>. Tapkajte dvakrat po zelenih poljih, tudi po malo počasneje in malo bolj vsaksebi.
+Vsak poskus se spodaj izpiše s pravimi številkami.</p>
+
+<div class="merilec"><span>Povečava zdaj</span><b id="scale">1.00</b></div>
+
+<div class="tapaj" id="navadno">Tapnite dvakrat<br>(navadno mesto)</div>
+<div class="tapaj mreza" id="kotMreza">Tapnite dvakrat<br>(kot polje v mreži)</div>
+
+<div class="naslovDnevnika">Dnevnik poskusov — najnovejši zgoraj</div>
+<div id="dnevnik"><div class="prazno">Še ni poskusov.</div></div>
+<button class="gumbPobrisi" id="pobrisi">Počisti dnevnik</button>
+
+<p class="noga">Preizkus-tap-mere.html · RAZLICICA-05SEP-MERE</p>
+
+<script>
+function pov(){ return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1; }
+var elS = document.getElementById('scale');
+setInterval(function(){ elS.textContent = pov().toFixed(2); }, 250);
+
+var elD = document.getElementById('dnevnik');
+document.getElementById('pobrisi').addEventListener('click', function(){
+  elD.innerHTML = '<div class="prazno">Še ni poskusov.</div>';
+});
+
+/* MERE — enake nastavitve kot v aplikaciji */
+var PRAG_CAS = 350, PRAG_PIK = 30;
+
+var zadnjiCas = 0, zadnjiX = 0, zadnjiY = 0, vecPrstov = false;
+
+document.addEventListener('touchstart', function(e){
+  if (e.touches && e.touches.length > 1) vecPrstov = true;
+}, { passive: true });
+
+document.addEventListener('touchend', function(e){
+  var koncano = !e.touches || e.touches.length === 0;
+  if (vecPrstov){ if (koncano){ vecPrstov = false; zadnjiCas = 0; } return; }
+  if (!koncano) return;
+  if (!e.changedTouches || e.changedTouches.length !== 1) return;
+
+  var t = e.changedTouches[0];
+  var zdaj = Date.now();
+  var razmik = zadnjiCas ? (zdaj - zadnjiCas) : -1;
+  var razdalja = zadnjiCas
+      ? Math.round(Math.sqrt(Math.pow(t.clientX - zadnjiX, 2) + Math.pow(t.clientY - zadnjiY, 2)))
+      : -1;
+  var preklicljiv = !!e.cancelable;
+
+  /* je to sploh drugi tap? vse do ene sekunde stejemo kot poskus */
+  if (razmik >= 0 && razmik < 1000){
+    var prestrezal = (razmik < PRAG_CAS && razdalja < PRAG_PIK);
+    if (prestrezal && preklicljiv) e.preventDefault();
+
+    var pred = pov();
+    zapisi(razmik, razdalja, preklicljiv, prestrezal, pred);
+    zadnjiCas = 0;
+    return;
+  }
+  zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
+}, { passive: false });
+
+function zapisi(razmik, razdalja, preklicljiv, prestrezal, pred){
+  setTimeout(function(){
+    var po = pov();
+    var spremenjeno = Math.abs(po - pred) > 0.02;
+    if (elD.querySelector('.prazno')) elD.innerHTML = '';
+    var v = document.createElement('div');
+    v.className = 'vrstica ' + (spremenjeno ? 'slabo' : 'dobro');
+    v.innerHTML =
+      'razmik <b>' + razmik + ' ms</b> &nbsp;·&nbsp; razdalja <b>' + razdalja + ' px</b><br>' +
+      'preklicljiv: <b>' + (preklicljiv ? 'da' : 'NE') + '</b> &nbsp;·&nbsp; ' +
+      'prestrezal: <b>' + (prestrezal ? 'da' : 'ne') + '</b><br>' +
+      'povečava ' + pred.toFixed(2) + ' → ' + po.toFixed(2) + ' &nbsp; ' +
+      (spremenjeno ? '<b>POVEČALO</b>' : 'pri miru');
+    elD.insertBefore(v, elD.firstChild);
+    while (elD.children.length > 14) elD.removeChild(elD.lastChild);
+  }, 600);
+}
+</script>
+</body>
+</html>
