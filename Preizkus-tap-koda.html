@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preizkus — prestrezanje s kodo</title>
+<style>
+body{margin:0 auto;padding:0 12px 40px;background:#f4f3ef;color:#1c1c1a;max-width:560px;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+h1{font-size:19px;margin:14px 0 2px}
+.kaj{font-size:13px;color:#78756c;margin:0 0 12px}
+.merilec{position:sticky;top:0;z-index:5;background:#fff4c2;border:1px solid #e5d78a;
+  border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between}
+.merilec b{font-size:22px;font-variant-numeric:tabular-nums}
+.blok{background:#fff;border:1px solid #d9d6cd;border-radius:11px;padding:12px 13px;margin-bottom:11px}
+.ime{font-size:15px;font-weight:700;margin-bottom:2px}
+.opis{font-size:12.5px;color:#78756c;margin-bottom:9px}
+.tapaj{height:88px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#fff;background:#3f7d58;user-select:none;-webkit-user-select:none}
+#brezMreze .tapaj{ touch-action:none }
+.izid{margin-top:9px;font-size:14px;font-weight:700;text-align:center;padding:7px;
+  border-radius:8px;background:#efeee9;color:#78756c}
+.izid.dobro{background:#d6ead9;color:#3f7d58}
+.izid.slabo{background:#fbeeec;color:#a8342a}
+.noga{font-size:12px;color:#78756c;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+
+<h1>Preizkus — prestrezanje s kodo</h1>
+<p class="kaj">Zadnja uveljavljena pot, ki je še nisva izmerila. Tu CSS ne igra vloge —
+drugi tap prestreže koda. Dvakrat hitro tapnite po vsakem polju.</p>
+
+<div class="merilec"><span>Povečava zdaj</span><b id="scale">1.00</b></div>
+
+<div class="blok" id="brezZascite">
+  <div class="ime">1 · Brez zaščite</div>
+  <div class="opis">Primerjalno polje. Tu se mora povečati.</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<div class="blok" id="sKodo">
+  <div class="ime">2 · Drugi tap prestreže koda</div>
+  <div class="opis">Če drugi dotik pride v manj kot 350 tisočink sekunde, ga koda zavrne.</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<div class="blok" id="brezMreze">
+  <div class="ime">3 · Koda + prepoved, kot v mreži</div>
+  <div class="opis">Isto kot 2, le da ima polje še touch-action: none — tako kot stolpci dni.</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<p class="noga">Preizkus-tap-koda.html · ščipanje z dvema prstoma mora povsod ostati</p>
+
+<script>
+/* PRESTREZANJE */
+function pov(){ return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1; }
+var elS = document.getElementById('scale');
+setInterval(function(){ elS.textContent = pov().toFixed(2); }, 300);
+
+function opremi(id, prestrezi){
+  var b = document.getElementById(id);
+  var t = b.querySelector('.tapaj');
+  var i = b.querySelector('.izid');
+  var zadnji = 0;
+
+  t.addEventListener('touchend', function(e){
+    var zdaj = Date.now();
+    var razmik = zdaj - zadnji;
+    if (razmik > 0 && razmik < 350){
+      /* drugi tap: ce prestrezamo, ga tu zavrnemo */
+      if (prestrezi && e.cancelable) e.preventDefault();
+      var pred = pov();
+      i.textContent = 'merim …';
+      i.className = 'izid';
+      setTimeout(function(){
+        var po = pov();
+        if (Math.abs(po - pred) > 0.02){
+          i.textContent = 'POVEČALO SE JE  (' + pred.toFixed(2) + ' → ' + po.toFixed(2) + ')';
+          i.className = 'izid slabo';
+        } else {
+          i.textContent = 'ostalo pri miru  (' + po.toFixed(2) + ')';
+          i.className = 'izid dobro';
+        }
+      }, 600);
+      zadnji = 0;
+    } else {
+      zadnji = zdaj;
+    }
+  }, { passive: false });
+}
+
+opremi('brezZascite', false);
+opremi('sKodo', true);
+opremi('brezMreze', true);
+</script>
+</body>
+</html>
