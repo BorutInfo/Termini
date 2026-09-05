@@ -20,7 +20,11 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
+/* DVOJNITAP — touch-action:manipulation odstrani dvojni tap za povecavo,
+   scipanje z dvema prstoma pa pusti pri miru */
+html{touch-action:manipulation}
 body{
+  touch-action:manipulation;
   background:var(--papir);color:var(--tekst);
   font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   padding:0 12px calc(14px + env(safe-area-inset-bottom));
@@ -38,14 +42,17 @@ body{
 }
 
 /* ---------- mreza ---------- */
-.mreza{display:flex;gap:7px;touch-action:none;user-select:none;-webkit-user-select:none}
-.ure{flex:0 0 42px}
+.mreza{display:flex;gap:7px;user-select:none;-webkit-user-select:none}
+/* URESTRANI — stolpca z urami ob obeh straneh; tu drsenje PRIME (pan-y),
+   ker prepoved velja samo nad stolpci dni */
+.ure{flex:0 0 42px;touch-action:pan-y}
+.ure.desno .ura-napis{text-align:left;padding-right:0;padding-left:5px}
 .ure .praznaGlava{height:34px}
 .ura-napis{
   font-size:11px;color:var(--sivo);text-align:right;padding-right:5px;
-  line-height:1;position:relative;top:-5px;
+  line-height:1;position:relative;top:-6px;
 }
-.dnevi{flex:1;display:flex;gap:7px}
+.dnevi{flex:1;display:flex;gap:7px;touch-action:none}
 .dan{flex:1;min-width:0}
 .dan-glava{height:34px;text-align:center;line-height:1.15}
 .dan-glava b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
@@ -231,21 +238,24 @@ function narisiMrezo(){
   visinaVrstice = izracunajVisino();
   elMreza.innerHTML = '';
 
-  /* stolpec z urami */
-  var ure = document.createElement('div');
-  ure.className = 'ure';
-  var prazna = document.createElement('div');
-  prazna.className = 'praznaGlava';
-  ure.appendChild(prazna);
-  for (var vi = 0; vi < VRSTIC; vi++){
-    var m = ZACETEK + vi*KORAK;
-    var n = document.createElement('div');
-    n.className = 'ura-napis';
-    n.style.height = visinaVrstice + 'px';
-    n.textContent = (m % 60 === 0) ? vNapis(m) : '';
-    ure.appendChild(n);
+  /* stolpec z urami — enak levo in desno */
+  function stolpecUr(stran){
+    var ure = document.createElement('div');
+    ure.className = 'ure' + (stran === 'desno' ? ' desno' : '');
+    var prazna = document.createElement('div');
+    prazna.className = 'praznaGlava';
+    ure.appendChild(prazna);
+    for (var vi = 0; vi < VRSTIC; vi++){
+      var m = ZACETEK + vi*KORAK;
+      var n = document.createElement('div');
+      n.className = 'ura-napis';
+      n.style.height = visinaVrstice + 'px';
+      n.textContent = (m % 60 === 0) ? vNapis(m) : '';
+      ure.appendChild(n);
+    }
+    return ure;
   }
-  elMreza.appendChild(ure);
+  elMreza.appendChild(stolpecUr('levo'));
 
   /* stolpci dni */
   var dnevi = document.createElement('div');
@@ -283,6 +293,7 @@ function narisiMrezo(){
     dnevi.appendChild(dan);
   });
   elMreza.appendChild(dnevi);
+  elMreza.appendChild(stolpecUr('desno'));
 }
 
 /* osvezi samo barve, brez ponovnega risanja */
