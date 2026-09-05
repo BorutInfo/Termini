@@ -221,12 +221,10 @@ var elMreza = document.getElementById('mreza');
 var visinaVrstice = 20;
 
 function izracunajVisino(){
-  /* mreza se stisne toliko, da gre na zaslon; najmanj 13 px na vrstico */
-  var nadMrezo = elMreza.offsetTop;         /* od vrha strani, ne od vrha zaslona */
-  var podMrezo = 250;                       /* seznam, gumba, zracnost */
-  var naVoljo  = window.innerHeight - nadMrezo - podMrezo;
-  var v = Math.floor(naVoljo / VRSTIC);
-  return Math.max(13, Math.min(26, v));
+  /* VISINA VRSTICE — 20 pik, dolocil Borut 5. 9. 2026 po preizkusu na iPhonu.
+     Samodejno stiskanje mreze na visino zaslona je s tem odpadlo:
+     mreza je tako visoka, kot mora biti, stran pa se drsa. */
+  return 20;
 }
 
 function narisiMrezo(){
