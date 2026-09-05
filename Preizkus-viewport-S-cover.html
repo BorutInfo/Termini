@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>S COVER</title>
+<style>
+body{margin:0;padding:0 12px 40px;background:#f4f3ef;color:#1c1c1a;max-width:560px;margin:0 auto;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  touch-action:manipulation}
+body * { touch-action: manipulation; }          /* isto pravilo kot v aplikaciji */
+h1{font-size:19px;margin:14px 0 2px}
+.kaj{font-size:12.5px;color:#78756c;margin:0 0 12px}
+.merilec{position:sticky;top:0;z-index:5;background:#fff4c2;border:1px solid #e5d78a;
+  border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between}
+.merilec b{font-size:22px;font-variant-numeric:tabular-nums}
+.blok{background:#fff;border:1px solid #d9d6cd;border-radius:11px;padding:12px 13px;margin-bottom:11px}
+.ime{font-size:15px;font-weight:700;margin-bottom:8px}
+.tapaj{height:88px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#fff;background:#3f7d58;user-select:none;-webkit-user-select:none}
+#z2 .tapaj{ touch-action:none }                  /* kot stolpci dni v aplikaciji */
+#z3 .tapaj{ touch-action:manipulation }          /* kot stolpci z urami */
+.izid{margin-top:9px;font-size:14px;font-weight:700;text-align:center;padding:7px;
+  border-radius:8px;background:#efeee9;color:#78756c}
+.izid.dobro{background:#d6ead9;color:#3f7d58}
+.izid.slabo{background:#fbeeec;color:#a8342a}
+.noga{font-size:12px;color:#78756c;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<h1>S COVER</h1>
+<p class="kaj">Ta stran ima v glavi viewport-fit=cover — tako kot App_Termini zdaj.</p>
+<div class="merilec"><span>Povečava zdaj</span><b id="scale">1.00</b></div>
+
+<div class="blok" id="z1">
+  <div class="ime">1 · Navadno mesto na strani</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<div class="blok" id="z2">
+  <div class="ime">2 · Kot stolpci dni (touch-action: none)</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<div class="blok" id="z3">
+  <div class="ime">3 · Kot stolpci z urami (manipulation)</div>
+  <div class="tapaj">Tapnite dvakrat</div>
+  <div class="izid">še ni preizkušeno</div>
+</div>
+
+<p class="noga">Preizkus-viewport-S-cover.html</p>
+
+<script>
+function pov(){ return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1; }
+var el = document.getElementById('scale');
+function osvezi(){ el.textContent = pov().toFixed(2); }
+osvezi(); setInterval(osvezi, 300);
+['z1','z2','z3'].forEach(function(id){
+  var b = document.getElementById(id);
+  var t = b.querySelector('.tapaj'), i = b.querySelector('.izid');
+  var zadnji = 0;
+  t.addEventListener('touchend', function(){
+    var zdaj = Date.now(), razmik = zdaj - zadnji;
+    if (razmik > 0 && razmik < 350){
+      var pred = pov();
+      i.textContent = 'merim …'; i.className = 'izid';
+      setTimeout(function(){
+        var po = pov();
+        if (Math.abs(po - pred) > 0.02){
+          i.textContent = 'POVEČALO SE JE  (' + pred.toFixed(2) + ' → ' + po.toFixed(2) + ')';
+          i.className = 'izid slabo';
+        } else {
+          i.textContent = 'ostalo pri miru  (' + po.toFixed(2) + ')';
+          i.className = 'izid dobro';
+        }
+      }, 600);
+      zadnji = 0;
+    } else { zadnji = zdaj; }
+  }, { passive: true });
+});
+</script>
+</body>
+</html>
