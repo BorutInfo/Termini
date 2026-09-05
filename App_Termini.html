@@ -6,9 +6,14 @@
 <title>App_Termini</title>
 <style>
 /* ====================================================================
-   App_Termini — SKLOP 1: mreza in poteg (samo videz, nic se ne shrani)
+   App_Termini — SKLOP 1
+   KORAK 1  mreza in poteg                     (opravljeno 3. 9. 2026)
+   KORAK 2  popravki po preizkusu na iPhonu    (opravljeno 5. 9. 2026)
+   KORAK 3  osnovni dizajnerski popravki
+   KORAK 4  vodena pot v oknu: najprej OD, nato DO
+   KORAK 5  popravljanje obstojecega razpona s klikom
 
-   RAZLICICA-05SEP-RAZDALJA40
+   RAZLICICA-05SEP-DIZAJN
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -17,11 +22,15 @@
   --papir:#f4f3ef;
   --bel:#ffffff;
   --crta:#d9d6cd;
+  --crta-temna:#2b2a27;      /* KORAK3 skoraj crna, ne popolnoma crna */
+  --siva-temna:#6b6860;      /* KORAK3 crtkana obroba zunaj delovnika */
   --tekst:#1c1c1a;
   --sivo:#78756c;
+  --sivo-gumb:#5c594f;       /* KORAK3 neaktiven gumb: siv, a dobro viden */
+  --obroba-gumb:#b4b1a8;
   --prosto:#3f7d58;
   --prosto-svetlo:#d6ead9;
-  --rumena:#fff4c2;
+  --opozorilo:#a8342a;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -33,70 +42,90 @@ body{
   overscroll-behavior:none;
 }
 
-/* ---------- glava ---------- */
+/* ---------- glava ----------
+   KORAK3: samo ime. Napis z lokacijo, dnevi in urami je odstranjen.
+   Prelom v najvec tri vrstice dela koda (glej narisiGlavo). */
 .glava{padding:12px 2px 9px;border-bottom:1px solid var(--crta)}
-.ime{font-size:19px;font-weight:700}
-.kraj{font-size:12.5px;color:var(--sivo);margin-top:1px}
-.navodilo{
-  background:var(--rumena);border-radius:8px;
-  padding:8px 11px;font-size:13.5px;margin:10px 0 12px;
-}
+.ime{font-size:19px;font-weight:700;line-height:1.2}
+.ime.vec-vrstic{text-align:center}   /* dve ali tri vrstice: na sredino */
+.ime .vr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meritev{position:absolute;visibility:hidden;white-space:nowrap;
+         font-size:19px;font-weight:700;left:-9999px;top:0}
 
 /* ---------- mreza ---------- */
-.mreza{display:flex;gap:7px;user-select:none;-webkit-user-select:none}
+.mreza{display:flex;gap:7px;user-select:none;-webkit-user-select:none;margin-top:10px}
 /* URESTRANI — stolpca z urami ob obeh straneh; tu drsenje PRIME, ker obdrzita
-   privzeti "manipulation" od zgoraj, prepoved pa velja samo nad stolpci dni */
+   privzeti "manipulation", prepoved pa velja samo nad stolpci dni */
 .ure{flex:0 0 42px}
 .ure.desno .ura-napis{text-align:left;padding-right:0;padding-left:5px}
-.ure .praznaGlava{height:34px}
+.ure .praznaGlava{height:20px}
 .ura-napis{
-  font-size:11px;color:var(--sivo);text-align:right;padding-right:5px;
-  line-height:1;position:relative;top:-6px;
+  font-size:13px;color:var(--sivo);text-align:right;padding-right:5px;
+  line-height:1;position:relative;top:-6.5px;
 }
+/* zamik je pol visine pisave, da napis sedi NA crti: 13 / 2 = 6,5 */
+.ura-napis.pol{color:#a09d95}   /* napis "30" je bledejsi od polne ure */
+.ure.desno .ura-napis.pol{padding-left:12px}
+
 .dnevi{flex:1;display:flex;gap:7px;touch-action:none}
 .dan{flex:1;min-width:0}
-.dan-glava{height:34px;text-align:center;line-height:1.15}
+.dan-glava{height:20px;text-align:center;line-height:1.15}
 .dan-glava b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
-.dan-glava span{font-size:10px;color:var(--sivo)}
 .stolpec{position:relative}
-/* polje mora prepoved nositi SAMO, ne le prek stolpca nad sabo — pravilo
-   "body *" bi mu sicer vrnilo manipulation in poteg bi zacel drseti stran */
-.polje{border-bottom:1px solid #ececea;touch-action:none}
-.polje.odprto{background:var(--bel);border-left:1px solid var(--crta);border-right:1px solid var(--crta)}
-.polje.prvo-odprto{border-top:1px solid var(--crta);border-top-left-radius:5px;border-top-right-radius:5px}
-.polje.zadnje-odprto{border-bottom:1px solid var(--crta);border-bottom-left-radius:5px;border-bottom-right-radius:5px}
-/* CRTKANA OBROBA = ure zunaj delovnika tega dne */
-.polje.zaprto{background:transparent;border-left:1px dashed #c3c0b8;border-right:1px dashed #c3c0b8;border-bottom:none}
-.polje.oznaceno{background:var(--prosto);border-bottom-color:rgba(255,255,255,.22)}
-.polje.polna-ura{border-bottom-color:#dedbd4}
-
-/* ---------- seznam razponov ---------- */
-.seznam{margin-top:14px;border-top:1px solid var(--crta);padding-top:11px}
-.seznam-naslov{
-  font-size:11px;text-transform:uppercase;letter-spacing:1px;
-  color:var(--sivo);margin-bottom:7px;
+/* polje mora prepoved nositi SAMO, ne le prek stolpca nad sabo */
+.polje{touch-action:none}
+/* KORAK3 crte: 15 in 45 minut crtkana 1 px, pol ure polna 1 px,
+   polna ura polna 2 px. Obroba je zaradi border-box VSTETA v visino 20 pik,
+   zato debelejsa crta mreze NE premakne. */
+.polje.odprto{
+  background:var(--bel);
+  border-left:1px solid var(--crta-temna);
+  border-right:1px solid var(--crta-temna);
+  border-bottom:1px dashed var(--crta-temna);
 }
+.polje.prvo-odprto{border-top:1px solid var(--crta-temna);border-top-left-radius:5px;border-top-right-radius:5px}
+.polje.pol-ure{border-bottom:1px solid var(--crta-temna)}
+.polje.polna-ura{border-bottom:2px solid var(--crta-temna)}
+.polje.zadnje-odprto{border-bottom:1px solid var(--crta-temna);border-bottom-left-radius:5px;border-bottom-right-radius:5px}
+/* CRTKANA OBROBA = ure zunaj delovnika tega dne, temno siva */
+.polje.zaprto{background:transparent;border-left:1px dashed var(--siva-temna);border-right:1px dashed var(--siva-temna);border-bottom:none}
+/* crte gredo tudi cez zeleno, z istimi lastnostmi (Borut, 5. 9. 2026) */
+.polje.oznaceno{background:var(--prosto)}
+
+/* ---------- seznam razponov ----------
+   KORAK3: napis PROSTI TERMINI je odstranjen, prav tako napis pod gumbom. */
+.seznam{margin-top:14px;border-top:1px solid var(--crta);padding-top:11px}
 .razpon{
   display:flex;align-items:center;justify-content:space-between;
   background:var(--prosto-svetlo);border:1px solid #bcd8c2;border-radius:8px;
   padding:9px 11px;margin-bottom:6px;font-size:15px;font-weight:600;
+  cursor:pointer;
 }
 .razpon button{
   border:none;background:none;color:var(--sivo);font-size:19px;
   line-height:1;padding:2px 4px;cursor:pointer;
 }
+/* KORAK5: popravljena vrstica za trenutek zasveti, da jo oko najde,
+   kamor koli se je v seznamu premaknila */
+@keyframes zasveti{
+  0%   {background:#fff3b0;border-color:#e0c34a}
+  70%  {background:#fff3b0;border-color:#e0c34a}
+  100% {background:var(--prosto-svetlo);border-color:#bcd8c2}
+}
+.razpon.zasveti{animation:zasveti 1.1s ease-out 1}
 .prazno{color:var(--sivo);font-size:13.5px;padding:4px 2px 10px}
 
+/* KORAK3: gumb z obrobo 2 px v zeleni barvi oznacenih polj */
 .gumb-dodaj{
-  width:100%;border:1px dashed #b9b6ad;background:none;border-radius:8px;
-  padding:10px;font-size:14.5px;color:var(--sivo);margin-bottom:12px;cursor:pointer;
-  font-family:inherit;
+  width:100%;border:2px solid var(--prosto);background:none;border-radius:8px;
+  padding:10px;font-size:14.5px;color:var(--prosto);margin-bottom:12px;cursor:pointer;
+  font-family:inherit;font-weight:600;
 }
+/* KORAK3: gumb Potrdi v zeleni barvi oznacenih polj */
 .gumb-potrdi{
-  width:100%;border:none;background:#1c1c1a;color:#fff;border-radius:9px;
+  width:100%;border:none;background:var(--prosto);color:#fff;border-radius:9px;
   padding:13px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;
 }
-.pod-gumbom{font-size:11.5px;color:var(--sivo);text-align:center;margin-top:9px}
 
 /* ---------- okno Dodaj razpon ---------- */
 .zavesa{
@@ -110,17 +139,36 @@ body{
 .senca{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:19}
 .senca[hidden]{display:none}
 .zav-naslov{font-size:16.5px;font-weight:700;text-align:center;margin-bottom:11px}
-.dnevi-izbira{display:flex;gap:7px;margin-bottom:13px}
+
+/* KORAK3 gumbi dnevov: sirina se prilagodi stevilu, vedno na sredini,
+   aktivni je za 30 % vecji in zelen, neaktivni sivi a z vidno obrobo */
+.dnevi-izbira{display:flex;gap:6px;justify-content:center;align-items:center;height:57px}
 .dan-gumb{
-  flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--crta);
-  background:#fff;font-size:14.5px;font-weight:600;color:var(--sivo);
-  cursor:pointer;font-family:inherit;
+  flex:0 0 auto;padding:0;border-radius:9px;
+  border:1px solid var(--obroba-gumb);background:#fff;
+  font-size:14.5px;font-weight:600;color:var(--sivo-gumb);
+  cursor:pointer;font-family:inherit;line-height:1;height:44px;
 }
-.dan-gumb.izbran{background:#1c1c1a;color:#fff;border-color:#1c1c1a}
+.dan-gumb.izbran{
+  background:var(--prosto);border-color:var(--prosto);color:#fff;
+  font-size:19px;height:57px;
+}
+/* KORAK4 obvestilo pod vrstico z dnevi */
+.opozorilo-dan{
+  font-size:13.5px;color:var(--opozorilo);text-align:center;
+  font-weight:600;min-height:19px;margin:4px 0 9px;
+}
+
 .par{display:flex;gap:11px}
-.polje-kolo{flex:1;background:#fff;border:1px solid var(--crta);border-radius:10px;padding:8px}
+/* obroba je prisotna VES CAS, samo barva se spremeni — tako se polji
+   ob prizigu ne premakneta niti za piko */
+.polje-kolo{
+  flex:1;background:#fff;border:2px solid transparent;border-radius:10px;padding:8px;
+  box-shadow:inset 0 0 0 1px var(--crta);
+}
+.polje-kolo.na-vrsti{border-color:var(--prosto)}
 .polje-kolo .oznaka{
-  font-size:11px;text-transform:uppercase;letter-spacing:1px;
+  font-size:13px;text-transform:uppercase;letter-spacing:1px;
   color:var(--sivo);text-align:center;margin-bottom:5px;
 }
 .polje-kolo select{
@@ -128,16 +176,18 @@ body{
   border:none;background:none;font-family:inherit;color:var(--tekst);
   padding:5px 0;-webkit-appearance:none;appearance:none;text-align-last:center;
 }
-.zav-opozorilo{
-  font-size:12.5px;color:#a8342a;text-align:center;margin-top:9px;min-height:17px;
-}
-.zav-gumbi{display:flex;gap:9px;margin-top:11px}
+/* ugasnjeno polje: klik pade na okvir, ne na kolesce */
+.polje-kolo.ugasnjen select{pointer-events:none;color:#b4b1a8}
+
+.zav-gumbi{display:flex;gap:9px;margin-top:14px}
 .zav-gumbi button{
   flex:1;padding:12px;border-radius:9px;font-weight:700;font-size:15px;
   cursor:pointer;font-family:inherit;
 }
 .preklic{background:#fff;border:1px solid var(--crta);color:var(--sivo)}
-.potrdi-okno{background:#1c1c1a;border:none;color:#fff}
+/* KORAK4 gumb Dodaj: pasiven je polno zelen, a zbledel */
+.potrdi-okno{background:var(--prosto);border:none;color:#fff;opacity:.45}
+.potrdi-okno.pripravljen{opacity:1}
 
 /* ---------- obvestilo ---------- */
 .obvestilo{
@@ -152,36 +202,31 @@ body{
 
 <div class="glava">
   <div class="ime" id="imeUcenca"></div>
-  <div class="kraj" id="krajInDnevi"></div>
 </div>
-
-<div class="navodilo" id="navodilo"></div>
 
 <div class="mreza" id="mreza"></div>
 
 <div class="seznam">
-  <div class="seznam-naslov">Prosti termini</div>
   <div id="seznamRazponov"></div>
-  <button class="gumb-dodaj" id="gumbDodaj">+&nbsp; Dodaj razpon</button>
+  <button class="gumb-dodaj" id="gumbDodaj">+&nbsp; Dodaj razpon Od – Do</button>
   <button class="gumb-potrdi" id="gumbPotrdi">Potrdi</button>
-  <div class="pod-gumbom">Povezavo lahko odprete znova in popravite.</div>
 </div>
 
 <div class="senca" id="senca" hidden></div>
 <div class="zavesa" id="zavesa" hidden>
-  <div class="zav-naslov">Dodaj razpon</div>
+  <div class="zav-naslov" id="zavNaslov">Dodaj razpon</div>
   <div class="dnevi-izbira" id="izbiraDni"></div>
+  <div class="opozorilo-dan" id="opozoriloDan"></div>
   <div class="par">
-    <div class="polje-kolo">
+    <div class="polje-kolo" id="okvirOd">
       <div class="oznaka">od</div>
       <select id="koloOd"></select>
     </div>
-    <div class="polje-kolo">
+    <div class="polje-kolo" id="okvirDo">
       <div class="oznaka">do</div>
       <select id="koloDo"></select>
     </div>
   </div>
-  <div class="zav-opozorilo" id="zavOpozorilo"></div>
   <div class="zav-gumbi">
     <button class="preklic" id="gumbPreklic">Prekliči</button>
     <button class="potrdi-okno" id="gumbDodajPotrdi">Dodaj</button>
@@ -192,39 +237,37 @@ body{
 
 <script>
 /* ====================================================================
-   SKLOP1 — mreza in poteg. Nic se ne shranjuje. Podatki so zapisani tu.
+   SKLOP1 — nic se ne shranjuje. Podatki so zapisani tu.
+   Ime in priimek sta LOCENA podatka (Borut dovolil 5. 9. 2026):
+   prelom glave se mora zgoditi za zadnjim imenom, koda pa iz enega
+   samega besedila ne more vedeti, kje se imena koncajo.
    ==================================================================== */
 
 var NABOR = {
-  lokacija: 'OŠ Trnovo',
-  ucenec:   'Ana Kovač',
+  lokacija: 'OŠ Trnovo',           /* se ne prikaze starsu; ostane za uciteljski pogled */
+  ime:      'Ana',
+  priimek:  'Kovač',
   korak:    15,                    /* minute na kvadratek */
   dnevi: [
-    { kratica:'sre', ime:'sreda',   od:'13:00', do:'17:30' },
-    { kratica:'čet', ime:'četrtek', od:'15:00', do:'20:00' }
+    { kratica:'čet', ime:'četrtek', od:'15:00', do:'20:00' },
+    { kratica:'sre', ime:'sreda',   od:'13:00', do:'17:30' }
   ]
 };
 
+/* dnevi so povsod razporejeni od pon do ned; kdor manjka, se preskoci */
+var ZAPOREDJE = { 'pon':0, 'tor':1, 'sre':2, 'čet':3, 'pet':4, 'sob':5, 'ned':6 };
+NABOR.dnevi.sort(function(a, b){ return ZAPOREDJE[a.kratica] - ZAPOREDJE[b.kratica]; });
+
 /* ====================================================================
    DVOJNITAP — Safari na iPhonu se za touch-action ne meni. Izmerjeno na
-   Borutovem telefonu 5. 9. 2026 (Preizkus-viewport-*.html): polje z
-   "manipulation" in polje z "none" sta se OBE povecali. Zato je vrstica
-   "body * { touch-action: manipulation }" odstranjena — ni zalegla.
-
-   Deluje pa prestrezanje drugega dotika. Izmerjeno na Preizkus-tap-koda.html,
-   polji 2 in 3: obe sta ostali pri 1.00.
-
-   Kako: ce drugi dotik pride na isto mesto v manj kot 350 tisocink sekunde,
-   ga zavrnemo. Scipanje z dvema prstoma se pri tem ne dotaknemo — gib z vec
-   kot enim prstom je posebej izvzet.
+   Borutovem telefonu 5. 9. 2026: polje z "manipulation" in polje z "none"
+   sta se OBE povecali. Deluje pa prestrezanje drugega dotika.
 
    MEJI STA IZMERJENI, ne ocenjeni (Preizkus-tap-mere.html, 5. 9. 2026):
-   - cas 350 ms: poskusi pri 366, 432, 446 in 534 ms se NISO povecali,
-     torej iPhone jih sam ne steje vec za dvojni tap. 350 je znotraj okna.
+   - cas 350 ms: poskusi pri 366, 432, 446 in 534 ms se NISO povecali.
    - razdalja 40 pik: prej je bilo 30 in edini poskus, ki se je prebil,
-     je imel razdaljo 32 pik pri razmiku 216 ms. Meja je bila prenizka za
-     dve piki. 40 pik je nad izmerjenim odpovedanim poskusom in hkrati pod
-     razmikom med gumbi krizec v seznamu (50 pik), da se ta ne motita.
+     je imel razdaljo 32 pik. 40 pik je nad tem in hkrati pod razmikom
+     med gumbi krizec v seznamu (50 pik), da se ta ne motita.
    ==================================================================== */
 (function(){
   var PRAG_CAS = 350, PRAG_PIK = 40;
@@ -281,22 +324,57 @@ function jeOdprto(di, vi){
   return m >= vMinute(d.od) && m < vMinute(d.do);
 }
 
-/* ---------- risanje mreze ---------- */
-var elMreza = document.getElementById('mreza');
-var visinaVrstice = 20;
+/* ====================================================================
+   GLAVA — prelom v najvec tri vrstice (Borut, 5. 9. 2026)
+   1. vse v eni vrstici
+   2. ce ne gre: prelom za vejico, "Prosti termini" skupaj v drugo vrstico
+   3. ce tudi ime s priimkom ne gre: prelom za zadnjim imenom
+      prva vrstica imena, druga priimki z vejico, tretja "Prosti termini"
+   Vrstica, ki je se vedno predolga, se konca s tremi pikami (CSS ellipsis).
+   Ena vrstica ostane poravnana na levo, dve ali tri na sredino.
+   ==================================================================== */
+var elIme = document.getElementById('imeUcenca');
 
-function izracunajVisino(){
-  /* VISINA VRSTICE — 20 pik, dolocil Borut 5. 9. 2026 po preizkusu na iPhonu.
-     Samodejno stiskanje mreze na visino zaslona je s tem odpadlo:
-     mreza je tako visoka, kot mora biti, stran pa se drsa. */
-  return 20;
+function sirinaNapisa(besedilo){
+  var m = document.createElement('span');
+  m.className = 'meritev';
+  m.textContent = besedilo;
+  document.body.appendChild(m);
+  var s = m.getBoundingClientRect().width;
+  m.parentNode.removeChild(m);
+  return s;
 }
 
+function narisiGlavo(){
+  var naVoljo = elIme.clientWidth;
+  var I = NABOR.ime.toUpperCase();
+  var P = NABOR.priimek.toUpperCase();
+  var vseSkupaj = I + ' ' + P + ', Prosti termini';
+  var imeInPriimek = I + ' ' + P + ',';
+  var vrstice;
+
+  if (sirinaNapisa(vseSkupaj) <= naVoljo)         vrstice = [vseSkupaj];
+  else if (sirinaNapisa(imeInPriimek) <= naVoljo) vrstice = [imeInPriimek, 'Prosti termini'];
+  else                                            vrstice = [I, P + ',', 'Prosti termini'];
+
+  elIme.className = 'ime' + (vrstice.length > 1 ? ' vec-vrstic' : '');
+  elIme.innerHTML = '';
+  vrstice.forEach(function(v){
+    var d = document.createElement('div');
+    d.className = 'vr';
+    d.textContent = v;
+    elIme.appendChild(d);
+  });
+}
+
+/* ---------- risanje mreze ---------- */
+var elMreza = document.getElementById('mreza');
+var visinaVrstice = 20;   /* dolocil Borut 5. 9. 2026 po preizkusu na iPhonu */
+
 function narisiMrezo(){
-  visinaVrstice = izracunajVisino();
   elMreza.innerHTML = '';
 
-  /* stolpec z urami — enak levo in desno */
+  /* stolpec z urami — enak levo in desno; med polnimi urami napis "30" */
   function stolpecUr(stran){
     var ure = document.createElement('div');
     ure.className = 'ure' + (stran === 'desno' ? ' desno' : '');
@@ -308,14 +386,21 @@ function narisiMrezo(){
       var n = document.createElement('div');
       n.className = 'ura-napis';
       n.style.height = visinaVrstice + 'px';
-      n.textContent = (m % 60 === 0) ? vNapis(m) : '';
+      if (m % 60 === 0){
+        n.textContent = vNapis(m);
+      } else if (m % 60 === 30){
+        n.textContent = '30';
+        n.className += ' pol';
+      } else {
+        n.textContent = '';
+      }
       ure.appendChild(n);
     }
     return ure;
   }
   elMreza.appendChild(stolpecUr('levo'));
 
-  /* stolpci dni */
+  /* stolpci dni — brez ur pod imenom dneva (KORAK3) */
   var dnevi = document.createElement('div');
   dnevi.className = 'dnevi';
   NABOR.dnevi.forEach(function(d, di){
@@ -324,8 +409,7 @@ function narisiMrezo(){
 
     var glava = document.createElement('div');
     glava.className = 'dan-glava';
-    glava.innerHTML = '<b>' + d.kratica + '</b><span>' +
-      vNapis(vMinute(d.od)) + '–' + vNapis(vMinute(d.do)) + '</span>';
+    glava.innerHTML = '<b>' + d.kratica + '</b>';
     dan.appendChild(glava);
 
     var stolpec = document.createElement('div');
@@ -339,8 +423,10 @@ function narisiMrezo(){
       if (jeOdprto(di, vi)){
         p.classList.add('odprto');
         if (!jeOdprto(di, vi-1)) p.classList.add('prvo-odprto');
+        var konec = ZACETEK + (vi+1)*KORAK;
+        if (konec % 60 === 0)  p.classList.add('polna-ura');
+        if (konec % 60 === 30) p.classList.add('pol-ure');
         if (!jeOdprto(di, vi+1)) p.classList.add('zadnje-odprto');
-        if (((ZACETEK + (vi+1)*KORAK) % 60) === 0) p.classList.add('polna-ura');
         if (oznake[di][vi]) p.classList.add('oznaceno');
       } else {
         p.classList.add('zaprto');
@@ -441,6 +527,7 @@ function razponi(){
 }
 
 var elSeznam = document.getElementById('seznamRazponov');
+var zasvetiKljuc = null;   /* KORAK5: kateri razpon naj po popravku zasveti */
 
 function narisiSeznam(){
   var r = razponi();
@@ -456,46 +543,73 @@ function narisiSeznam(){
     var vrstica = document.createElement('div');
     vrstica.className = 'razpon';
     var besedilo = document.createElement('span');
-    besedilo.textContent = NABOR.dnevi[x.dan].kratica + ' ' + vNapis(x.od) + ' – ' + vNapis(x.do);
+    besedilo.textContent = NABOR.dnevi[x.dan].kratica + ' ' + vNapis(x.od) + ' – ' + vNapis(x.do);
+
     var krizec = document.createElement('button');
     krizec.textContent = '✕';
     krizec.setAttribute('aria-label', 'Zbriši razpon');
-    krizec.addEventListener('click', function(){
+    krizec.addEventListener('click', function(e){
+      e.stopPropagation();          /* KORAK5: krizec samo brise, okna ne odpre */
       for (var vi = x.odVi; vi < x.doVi; vi++) oznake[x.dan][vi] = false;
       osveziBarve();
       narisiSeznam();
     });
+
+    /* KORAK5: klik kamor koli v vrstico odpre okno za popravek */
+    vrstica.addEventListener('click', function(){ odpriOknoZaPopravek(x); });
+
+    /* razpon, ki je nastal iz pravkar shranjenega popravka, zasveti */
+    if (zasvetiKljuc &&
+        zasvetiKljuc.dan === x.dan &&
+        zasvetiKljuc.vi >= x.odVi && zasvetiKljuc.vi < x.doVi){
+      vrstica.classList.add('zasveti');
+      zasvetiKljuc = null;
+    }
+
     vrstica.appendChild(besedilo);
     vrstica.appendChild(krizec);
     elSeznam.appendChild(vrstica);
   });
 }
 
-/* ---------- okno Dodaj razpon ---------- */
-var elZavesa = document.getElementById('zavesa');
-var elSenca  = document.getElementById('senca');
-var elOd = document.getElementById('koloOd');
-var elDo = document.getElementById('koloDo');
-var elOpozorilo = document.getElementById('zavOpozorilo');
-var izbraniDan = 0;
+/* ====================================================================
+   OKNO — KORAK 4 (vodena pot) in KORAK 5 (popravek)
 
-function napolniIzbiroDni(){
-  var ovoj = document.getElementById('izbiraDni');
-  ovoj.innerHTML = '';
-  NABOR.dnevi.forEach(function(d, di){
-    var g = document.createElement('button');
-    g.className = 'dan-gumb' + (di === izbraniDan ? ' izbran' : '');
-    g.textContent = d.kratica;
-    g.addEventListener('click', function(){
-      izbraniDan = di;
-      napolniIzbiroDni();
-      napolniKolesa();
-    });
-    ovoj.appendChild(g);
-  });
+   Pravila (Borut, 5. 9. 2026):
+   - ob odprtju ni izbran noben dan; polji OD in DO kazeta crtico
+   - OD ima zeleno obrobo, a je PASIVEN; klik nanj se oglasi
+     z obvestilom "Izberite najprej dan."
+   - DO je pasiven in TIH; klik nanj ne naredi in ne izpise nicesar
+   - ko starс izbere dan, se OD sam izpolni z najzgodnejso uro delovnika
+     tistega dne; obroba se preseli na DO, ki ostane prazen
+   - ce je dan v naboru en sam, je izbran vnaprej
+   - ko je izbrana ura DO, obrobe nima noben gumb; oba ostaneta dejavna
+   - gumb Dodaj je pasiven (zbledel) in se, dokler dan ni izbran,
+     oglasi z istim obvestilom
+   ==================================================================== */
+var PRAZNO = '—';
+
+var elZavesa   = document.getElementById('zavesa');
+var elSenca    = document.getElementById('senca');
+var elNaslov   = document.getElementById('zavNaslov');
+var elOd       = document.getElementById('koloOd');
+var elDo       = document.getElementById('koloDo');
+var elOkvirOd  = document.getElementById('okvirOd');
+var elOkvirDo  = document.getElementById('okvirDo');
+var elOpozorilo= document.getElementById('opozoriloDan');
+var elDodajPotrdi = document.getElementById('gumbDodajPotrdi');
+
+var izbraniDan = null;      /* null = se ni izbran */
+var vPopravku  = null;      /* KORAK5: razpon, ki ga popravljamo */
+
+function praznoKolo(el){
+  el.innerHTML = '';
+  var o = document.createElement('option');
+  o.value = ''; o.textContent = PRAZNO;
+  el.appendChild(o);
 }
 
-function napolniKolesa(){
+function napolniKoloOd(){
   var d = NABOR.dnevi[izbraniDan];
   var od = vMinute(d.od), do_ = vMinute(d.do);
   elOd.innerHTML = '';
@@ -504,43 +618,149 @@ function napolniKolesa(){
     o.value = m; o.textContent = vNapis(m);
     elOd.appendChild(o);
   }
-  napolniKoloDo();
 }
-function napolniKoloDo(){
+function napolniKoloDo(obdrzi){
   var d = NABOR.dnevi[izbraniDan];
   var do_ = vMinute(d.do);
   var zacni = (+elOd.value) + KORAK;
   elDo.innerHTML = '';
+  var prazna = document.createElement('option');
+  prazna.value = ''; prazna.textContent = PRAZNO;
+  elDo.appendChild(prazna);
   for (var m = zacni; m <= do_; m += KORAK){
     var o = document.createElement('option');
     o.value = m; o.textContent = vNapis(m);
     elDo.appendChild(o);
   }
+  elDo.value = (obdrzi !== undefined && elDo.querySelector('option[value="'+obdrzi+'"]')) ? String(obdrzi) : '';
 }
-elOd.addEventListener('change', function(){ napolniKoloDo(); elOpozorilo.textContent = ''; });
+
+/* kdo je na vrsti: obroba stoji na enem samem mestu, ali na nobenem */
+function osveziStanjeOkna(){
+  var danIzbran = (izbraniDan !== null);
+  var odIzpolnjen = danIzbran && elOd.value !== '';
+  var doIzpolnjen = danIzbran && elDo.value !== '';
+
+  elOkvirOd.classList.toggle('ugasnjen', !danIzbran);
+  elOkvirDo.classList.toggle('ugasnjen', !odIzpolnjen);
+
+  /* obroba: brez dneva na OD; z izpolnjenim OD na DO; ko je DO izpolnjen, nikjer */
+  elOkvirOd.classList.toggle('na-vrsti', !danIzbran);
+  elOkvirDo.classList.toggle('na-vrsti', odIzpolnjen && !doIzpolnjen);
+
+  elDodajPotrdi.classList.toggle('pripravljen', odIzpolnjen && doIzpolnjen);
+}
+
+function obvestiloDan(pokazi){
+  elOpozorilo.textContent = pokazi ? 'Izberite najprej dan.' : '';
+}
+
+function napolniIzbiroDni(){
+  var ovoj = document.getElementById('izbiraDni');
+  ovoj.innerHTML = '';
+  var N = NABOR.dnevi.length, GAP = 6;
+  var naVoljo = ovoj.clientWidth || 292;
+  /* sirina: aktivni je 1,3-kraten, najvec 64 pik; vse skupaj mora iti v vrstico */
+  var w = Math.min(64, (naVoljo - 2 - (N-1)*GAP) / (N + 0.3));
+  NABOR.dnevi.forEach(function(d, di){
+    var g = document.createElement('button');
+    var akt = (di === izbraniDan);
+    g.className = 'dan-gumb' + (akt ? ' izbran' : '');
+    g.textContent = d.kratica;
+    g.style.width = (akt ? w*1.3 : w).toFixed(1) + 'px';
+    g.addEventListener('click', function(){ izberiDan(di); });
+    ovoj.appendChild(g);
+  });
+}
+
+function izberiDan(di){
+  izbraniDan = di;
+  obvestiloDan(false);
+  napolniIzbiroDni();
+  napolniKoloOd();
+  elOd.value = String(vMinute(NABOR.dnevi[di].od));   /* najzgodnejsa ura tega dne */
+  napolniKoloDo();
+  osveziStanjeOkna();
+}
+
+/* klik na ugasnjeno polje */
+elOkvirOd.addEventListener('click', function(){
+  if (izbraniDan === null) obvestiloDan(true);
+});
+elOkvirDo.addEventListener('click', function(){
+  /* DO ostane tih (Borut, 5. 9. 2026) */
+});
+
+elOd.addEventListener('change', function(){
+  /* po izbiri ure OD se obroba spet postavi na DO; ce je stara ura DO
+     se veljavna, ostane, sicer se polje izprazni */
+  var staro = elDo.value;
+  napolniKoloDo(staro === '' ? undefined : +staro);
+  osveziStanjeOkna();
+});
+elDo.addEventListener('change', osveziStanjeOkna);
 
 function odpriOkno(){
-  izbraniDan = 0;
-  napolniIzbiroDni();
-  napolniKolesa();
-  elOpozorilo.textContent = '';
+  vPopravku = null;
+  elNaslov.textContent = 'Dodaj razpon';
+  elDodajPotrdi.textContent = 'Dodaj';
+  obvestiloDan(false);
   elZavesa.hidden = false;
   elSenca.hidden = false;
+
+  if (NABOR.dnevi.length === 1){
+    napolniIzbiroDni();          /* najprej narisi, da je znana sirina */
+    izberiDan(0);                /* en sam dan je izbran vnaprej */
+  } else {
+    izbraniDan = null;
+    napolniIzbiroDni();
+    praznoKolo(elOd);
+    praznoKolo(elDo);
+    osveziStanjeOkna();
+  }
 }
+
+/* KORAK5 — okno se odpre z izpolnjenimi podatki popravljanega razpona */
+function odpriOknoZaPopravek(x){
+  vPopravku = x;
+  elNaslov.textContent = 'Popravi razpon';
+  elDodajPotrdi.textContent = 'Shrani';
+  obvestiloDan(false);
+  elZavesa.hidden = false;
+  elSenca.hidden = false;
+
+  izbraniDan = x.dan;
+  napolniIzbiroDni();
+  napolniKoloOd();
+  elOd.value = String(x.od);
+  napolniKoloDo(x.do);
+  osveziStanjeOkna();
+}
+
 function zapriOkno(){
   elZavesa.hidden = true;
   elSenca.hidden = true;
+  vPopravku = null;
 }
 
 document.getElementById('gumbDodaj').addEventListener('click', odpriOkno);
 document.getElementById('gumbPreklic').addEventListener('click', zapriOkno);
 elSenca.addEventListener('click', zapriOkno);
 
-document.getElementById('gumbDodajPotrdi').addEventListener('click', function(){
+elDodajPotrdi.addEventListener('click', function(){
+  if (izbraniDan === null){ obvestiloDan(true); return; }
+  if (elOd.value === '' || elDo.value === '') return;   /* tiho, obroba ze kaze, kaj manjka */
+
   var od = +elOd.value, do_ = +elDo.value;
-  if (do_ <= od){ elOpozorilo.textContent = 'Konec mora biti za začetkom'; return; }
+
+  /* KORAK5: stari razpon najprej pobrisemo, sele nato zapisemo novega */
+  if (vPopravku){
+    for (var v = vPopravku.odVi; v < vPopravku.doVi; v++) oznake[vPopravku.dan][v] = false;
+  }
   var odVi = (od - ZACETEK) / KORAK, doVi = (do_ - ZACETEK) / KORAK;
   for (var vi = odVi; vi < doVi; vi++) oznake[izbraniDan][vi] = true;
+
+  zasvetiKljuc = { dan: izbraniDan, vi: odVi };
   osveziBarve();
   narisiSeznam();
   zapriOkno();
@@ -560,21 +780,14 @@ document.getElementById('gumbPotrdi').addEventListener('click', function(){
 });
 
 /* ---------- zagon ---------- */
-document.getElementById('imeUcenca').textContent = NABOR.ucenec;
-document.getElementById('krajInDnevi').textContent =
-  NABOR.lokacija + ' · ' + NABOR.dnevi.map(function(d){
-    return d.kratica + ' ' + vNapis(vMinute(d.od)) + '–' + vNapis(vMinute(d.do));
-  }).join(' · ');
-document.getElementById('navodilo').innerHTML =
-  'Povlecite čez ure, ko je <b>' + NABOR.ucenec.split(' ')[0] + '</b> prosta.';
-
+narisiGlavo();
 narisiMrezo();
 narisiSeznam();
 
 var prerisi = null;
 window.addEventListener('resize', function(){
   clearTimeout(prerisi);
-  prerisi = setTimeout(function(){ narisiMrezo(); }, 120);
+  prerisi = setTimeout(function(){ narisiGlavo(); narisiMrezo(); }, 120);
 });
 </script>
 </body>
