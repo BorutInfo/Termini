@@ -14,7 +14,7 @@
    KORAK 5  popravljanje obstojecega razpona s klikom  (opravljeno 5. 9. 2026)
    KORAK 6  popravki po drugem preizkusu na telefonu   (7. 9. 2026)
 
-   RAZLICICA-07SEP-KORAK6
+   RAZLICICA-07SEP-VZOREC
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -92,10 +92,23 @@ body{
 /* CRTKANA OBROBA = ure zunaj delovnika tega dne, temno siva */
 .polje.zaprto{background:transparent;border-left:1px dashed var(--siva-temna);border-right:1px dashed var(--siva-temna);border-bottom:none}
 /* KORAK6 zelja 8: crtkani stranici se na zunanjem koncu zakljucita z vodoravno
-   crtkano crto, da stolpec ne visi v prazno. Obroba je vsteta v visino
-   (box-sizing:border-box), zato se vrstica ne premakne niti za piko. */
-.polje.zaprto.prvo-zaprto{border-top:1px dashed var(--siva-temna)}
-.polje.zaprto.zadnje-zaprto{border-bottom:1px dashed var(--siva-temna)}
+   crtkano crto, da stolpec ne visi v prazno.
+   VZOREC (Borut, 7. 9. 2026): mora biti enak navpicnemu - ena daljsa crtica in
+   dve krajsi. Izmerjeno z Borutovega posnetka zaslona: v vsakem 20-pik polju
+   Safari narise 5 pik crte, 3 reze, 3 crte, 3 reze, 3 crte, 3 reze.
+   Navadna "dashed" obroba tega vzorca po sirini stolpca ne ponovi (narise same
+   kratke crtice), zato je vodoravna crta narisana z gradientom z isto periodo. */
+.polje.zaprto.prvo-zaprto,
+.polje.zaprto.zadnje-zaprto{
+  background-image:repeating-linear-gradient(to right,
+    var(--siva-temna) 0 5px, transparent 5px 8px,
+    var(--siva-temna) 8px 11px, transparent 11px 14px,
+    var(--siva-temna) 14px 17px, transparent 17px 20px);
+  background-size:100% 1px;
+  background-repeat:no-repeat;
+}
+.polje.zaprto.prvo-zaprto{background-position:left top}
+.polje.zaprto.zadnje-zaprto{background-position:left bottom}
 /* crte gredo tudi cez zeleno, z istimi lastnostmi (Borut, 5. 9. 2026) */
 .polje.oznaceno{background:var(--prosto)}
 
@@ -120,7 +133,6 @@ body{
   100% {background:var(--prosto-svetlo);border-color:#bcd8c2}
 }
 .razpon.zasveti{animation:zasveti 1.1s ease-out 1}
-.prazno{color:var(--sivo);font-size:13.5px;padding:4px 2px 10px}
 
 /* KORAK3: gumb z obrobo 2 px v zeleni barvi oznacenih polj */
 .gumb-dodaj{
@@ -560,14 +572,7 @@ function kljuciRazponov(){
 
 function narisiSeznam(staro){
   var r = razponi();
-  elSeznam.innerHTML = '';
-  if (r.length === 0){
-    var prazno = document.createElement('div');
-    prazno.className = 'prazno';
-    prazno.textContent = 'Ni še nobenega termina.';
-    elSeznam.appendChild(prazno);
-    return;
-  }
+  elSeznam.innerHTML = '';   /* prazen seznam ne izpise nicesar (Borut, 7. 9. 2026) */
   r.forEach(function(x){
     var vrstica = document.createElement('div');
     vrstica.className = 'razpon';
