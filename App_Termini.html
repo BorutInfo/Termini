@@ -14,7 +14,7 @@
    KORAK 5  popravljanje obstojecega razpona s klikom  (opravljeno 5. 9. 2026)
    KORAK 6  popravki po drugem preizkusu na telefonu   (7. 9. 2026)
 
-   RAZLICICA-08SEP-PETINDVAJSET
+   RAZLICICA-08SEP-CAKANJE
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -608,24 +608,29 @@ function narisiSeznam(staro){
 /* ====================================================================
    OKNO — KORAK 6 (Borut, 6. in 7. 9. 2026)
 
-   ENO SAMO PRAVILO ZA OBROBO (Borut, 8. 9. 2026): ko se okno odpre, sta
-   OBA gumba obrobljena. Ob PRVEM vnosu obroba izgine z obeh in se, dokler
-   je okno odprto, ne vrne vec - tudi ce stars uro se veckrat popravi.
-   Enako velja pri dodajanju in pri popravku.
+   ENO SAMO PRAVILO ZA OBROBO (Borut, 8. 9. 2026, natancen opis postopka):
+   OBROBA POVE "TO POLJE CAKA NA VAS VNOS". Spremenljivka "caka" ima stiri
+   stanja: nobena, obe, od, do.
 
-   DODAJANJE
-   - ob odprtju: OD in DO kazeta crtico, oba sta obrobljena, Dodaj je bled;
-     klik na OD, na DO ali na Dodaj se oglasi z "Izberite najprej dan."
-   - po izbiri dneva aplikacija NE izpolni nicesar sama
-   - stars izpolni katerokoli polje prvo; kolesci se omejujeta druga drugo
-   - ko sta izpolnjena oba, se Dodaj prizge
+   - okno za dodajanje se odpre brez izbranega dneva  -> caka = nobena
+     (polji sta neaktivni IN BREZ obrobe; klik se oglasi "Izberite najprej dan.")
+   - stars izbere dan                                 -> caka = obe
+     (polji se aktivirata in SOCASNO dobita obrobo)
+   - okno za popravek se odpre                        -> caka = obe
+     (uri sta ze izpolnjeni, obrobljeni sta obe)
+   - stars izpolni OD:  ce je cakal prav OD -> nobena, sicer -> do
+   - stars izpolni DO:  ce je cakal prav DO -> nobena, sicer -> od
 
-   POPRAVEK
-   - v vrstici z dnevi je SAMO dan tega razpona, kot navaden zapis
-     (videti enak kot aktiven gumb), ki se na klik ne odziva
-   - OD in DO sta ze izpolnjena, a sta ob odprtju vseeno obrobljena
-   - Shrani je ob odprtju bled; prizge se sele, ko je ura RES drugacna od
-     tiste, s katero se je okno odprlo, in spet zbledi, ce jo stars vrne
+   Iz tega sledi natanko to, kar je Borut opisal:
+   - po izbiri dneva sta obrobljena oba
+   - ko izpolni OD, OD obrobo izgubi, DO jo OBDRZI (in obratno)
+   - ko izpolni se drugega, obrobe nima nobeden
+   - ce iz tega mirnega stanja spet popravi eno uro, drugo polje spet dobi
+     obrobo; to se lahko ponavlja v neskoncnost, tudi pri popravku
+
+   POPRAVEK ima poleg tega: v vrstici z dnevi SAMO dan tega razpona kot
+   navaden zapis, gumb "Shrani" namesto "Dodaj", in Shrani je bled, dokler
+   ura ni RES drugacna od tiste, s katero se je okno odprlo
    ==================================================================== */
 var PRAZNO = '\u2014';
 
@@ -642,7 +647,7 @@ var elDodajPotrdi = document.getElementById('gumbDodajPotrdi');
 var izbraniDan = null;                /* null = se ni izbran */
 var vPopravku  = null;                /* razpon, ki ga popravljamo */
 var staraOd = null, staraDo = null;   /* uri, s katerima se je okno odprlo */
-var dotaknjeno = false;               /* ali je stars v tem oknu ze vnesel uro */
+var caka = 'nobena';   /* katero polje caka na vnos: nobena | obe | od | do */
 
 function vrednost(el){ return el.value === '' ? null : +el.value; }
 
@@ -692,9 +697,9 @@ function osveziStanjeOkna(){
   elOkvirOd.classList.toggle('ugasnjen', !danIzbran);
   elOkvirDo.classList.toggle('ugasnjen', !danIzbran);
 
-  /* obroba na OBEH, dokler stars v tem oknu se ni vnesel nobene ure */
-  elOkvirOd.classList.toggle('na-vrsti', !dotaknjeno);
-  elOkvirDo.classList.toggle('na-vrsti', !dotaknjeno);
+  /* obroba pove: TO polje caka na vas vnos */
+  elOkvirOd.classList.toggle('na-vrsti', caka === 'obe' || caka === 'od');
+  elOkvirDo.classList.toggle('na-vrsti', caka === 'obe' || caka === 'do');
 
   /* pri popravku se gumb prizge sele ob RESNICNI spremembi ure;
      ce stars uro vrne na staro, gumb spet zbledi (Borut, 7. 9. 2026) */
@@ -737,9 +742,10 @@ function narisiDneve(){
 
 function izberiDan(di){
   izbraniDan = di;
+  caka = 'obe';                 /* obe polji socasno dobita obrobo */
   obvestiloDan(false);
   narisiDneve();
-  napolniKolesci(null, null);   /* KORAK6: aplikacija ne izpolni nicesar sama */
+  napolniKolesci(null, null);   /* aplikacija ne izpolni nicesar sama */
   osveziStanjeOkna();
 }
 
@@ -748,16 +754,19 @@ function klikNaUgasnjeno(){ if (izbraniDan === null) obvestiloDan(true); }
 elOkvirOd.addEventListener('click', klikNaUgasnjeno);
 elOkvirDo.addEventListener('click', klikNaUgasnjeno);
 
-function poIzbiriUre(){
-  dotaknjeno = true;            /* prvi vnos ugasne obrobo na obeh gumbih */
+function poIzbiriUre(kdo){
+  /* izpolnjeno polje obrobo izgubi; ce je cakalo prav ono, ne caka vec nihce,
+     sicer zacne cakati drugo polje */
+  if (kdo === 'od') caka = (caka === 'od') ? 'nobena' : 'do';
+  else              caka = (caka === 'do') ? 'nobena' : 'od';
   napolniKolesci(vrednost(elOd), vrednost(elDo));
   osveziStanjeOkna();
 }
-elOd.addEventListener('change', poIzbiriUre);
-elDo.addEventListener('change', poIzbiriUre);
+elOd.addEventListener('change', function(){ poIzbiriUre('od'); });
+elDo.addEventListener('change', function(){ poIzbiriUre('do'); });
 
 function odpriOkno(){
-  vPopravku = null; staraOd = null; staraDo = null; dotaknjeno = false;
+  vPopravku = null; staraOd = null; staraDo = null;
   elNaslov.textContent = 'Dodaj razpon';
   elDodajPotrdi.textContent = 'Dodaj';
   obvestiloDan(false);
@@ -766,15 +775,15 @@ function odpriOkno(){
 
   izbraniDan = (NABOR.dnevi.length === 1) ? 0 : null;   /* en sam dan je izbran vnaprej */
   narisiDneve();
-  if (izbraniDan === null){ praznoKolo(elOd); praznoKolo(elDo); }
-  else                    { napolniKolesci(null, null); }
+  if (izbraniDan === null){ caka = 'nobena'; praznoKolo(elOd); praznoKolo(elDo); }
+  else                    { caka = 'obe';    napolniKolesci(null, null); }
   osveziStanjeOkna();
 }
 
 /* okno se odpre z urama popravljanega razpona */
 function odpriOknoZaPopravek(x){
   vPopravku = x;
-  staraOd = x.od; staraDo = x.do; dotaknjeno = false;
+  staraOd = x.od; staraDo = x.do; caka = 'obe';
   elNaslov.textContent = 'Popravi razpon';
   elDodajPotrdi.textContent = 'Shrani';
   obvestiloDan(false);
@@ -790,7 +799,7 @@ function odpriOknoZaPopravek(x){
 function zapriOkno(){
   elZavesa.hidden = true;
   elSenca.hidden  = true;
-  vPopravku = null; staraOd = null; staraDo = null;
+  vPopravku = null; staraOd = null; staraDo = null; caka = 'nobena';
 }
 
 document.getElementById('gumbDodaj').addEventListener('click', odpriOkno);
