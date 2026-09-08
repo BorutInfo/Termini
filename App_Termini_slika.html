@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App_Termini — mirujoča slika</title>
+<style>
+  :root{
+    --papir:#f4f3ef;
+    --bel:#ffffff;
+    --crta:#d9d6cd;
+    --crta-mocna:#2b2b2b;
+    --tekst:#1c1c1a;
+    --sivo:#78756c;
+    --modra-ozadje:#e4edf7;
+    --oranzna-ozadje:#fbe9dd;
+    --prosto:#3f7d58;
+    --prosto-svetlo:#d6ead9;
+    --umescen:#1f5f8b;
+    --opomba:#b3541e;
+    --rumena:#fff4c2;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:28px 20px 60px;
+    background:var(--papir);color:var(--tekst);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .ovoj{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.2px}
+  .podnaslov{color:var(--sivo);margin:0 0 30px;font-size:13px}
+  h2{
+    font-size:12px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--sivo);margin:38px 0 14px;padding-bottom:7px;
+    border-bottom:1px solid var(--crta);font-weight:700;
+  }
+  .karta{background:var(--bel);border:1px solid var(--crta);border-radius:12px;padding:18px}
+  .vrsta{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+
+  /* ---------- TELEFON ---------- */
+  .telefon{
+    width:300px;flex:0 0 300px;background:#fff;border:9px solid #2b2b2b;
+    border-radius:30px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.14);
+  }
+  .t-glava{padding:12px 13px 10px;border-bottom:1px solid var(--crta)}
+  .t-ime{font-size:17px;font-weight:700}
+  .t-kraj{font-size:12px;color:var(--sivo);margin-top:2px}
+  .t-navodilo{
+    background:var(--rumena);border-bottom:1px solid var(--crta);
+    padding:8px 13px;font-size:12.5px;
+  }
+  .t-telo{padding:12px 13px 14px}
+
+  .mreza-ovoj{display:flex;gap:6px}
+  .ure-stolpec{width:40px;flex:0 0 40px}
+  .ura-oznaka{height:44px;font-size:11px;color:var(--sivo);text-align:right;padding-right:5px;
+    border-top:1px solid transparent;line-height:1}
+  .dnevi{flex:1;display:flex;gap:6px}
+  .dan{flex:1}
+  .dan-ime{font-size:11.5px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--sivo);
+    letter-spacing:.6px;text-transform:uppercase}
+  .polja{border:1px solid var(--crta);border-radius:6px;overflow:hidden}
+  .polje{height:22px;border-bottom:1px solid #ececea}
+  .polje:last-child{border-bottom:none}
+  .polje.pol{border-bottom:1px solid #dedbd4}
+  .polje.on{background:var(--prosto)}
+  .polje.on.zacetek{border-top-left-radius:4px;border-top-right-radius:4px}
+  .polje.on.konec{border-bottom-left-radius:4px;border-bottom-right-radius:4px}
+
+  .seznam{margin-top:14px;border-top:1px solid var(--crta);padding-top:10px}
+  .seznam-naslov{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--sivo);margin-bottom:7px}
+  .razpon{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--prosto-svetlo);border:1px solid #bcd8c2;border-radius:7px;
+    padding:7px 9px;margin-bottom:6px;font-size:13.5px;font-weight:600;
+  }
+  .razpon .x{color:var(--sivo);font-weight:400;font-size:15px}
+  .dodaj{
+    border:1px dashed #b9b6ad;border-radius:7px;padding:7px 9px;
+    font-size:13px;color:var(--sivo);text-align:center;margin-bottom:12px;
+  }
+  .gumb{
+    background:#1c1c1a;color:#fff;text-align:center;padding:11px;
+    border-radius:9px;font-weight:700;font-size:15px;
+  }
+  .t-pod{font-size:11.5px;color:var(--sivo);text-align:center;margin-top:9px}
+
+  /* ---------- OZNAKE ---------- */
+  .oznake{flex:1;min-width:290px}
+  .oznaka{display:flex;gap:11px;margin-bottom:15px;align-items:flex-start}
+  .st{
+    flex:0 0 25px;height:25px;border-radius:50%;background:var(--opomba);color:#fff;
+    font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .oznaka b{display:block;font-size:14px;margin-bottom:1px}
+  .oznaka span{font-size:13px;color:#514f48}
+
+  .znacka{
+    position:absolute;background:var(--opomba);color:#fff;width:22px;height:22px;
+    border-radius:50%;font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 3px #fff;
+  }
+  .rel{position:relative}
+
+  /* ---------- PRIMERJAVA POTI ---------- */
+  .poti{display:flex;gap:14px;flex-wrap:wrap}
+  .pot{
+    flex:1;min-width:215px;background:var(--bel);border:1px solid var(--crta);
+    border-radius:11px;padding:14px;
+  }
+  .pot.priporocena{border:2px solid var(--prosto);background:#f5fbf6}
+  .pot h3{margin:0 0 3px;font-size:15px}
+  .pot .kdo{font-size:11.5px;color:var(--sivo);margin-bottom:9px}
+  .pot p{margin:0 0 7px;font-size:13px}
+  .plus{color:var(--prosto);font-weight:700}
+  .minus{color:#a8342a;font-weight:700}
+  .zig{
+    display:inline-block;background:var(--prosto);color:#fff;font-size:10.5px;
+    letter-spacing:.8px;text-transform:uppercase;font-weight:700;
+    padding:3px 8px;border-radius:20px;margin-bottom:7px;
+  }
+  .zig.ne{background:#a8342a}
+  .zig.morda{background:#8a7a2e}
+
+  /* ---------- UCITELJSKI PREGLED ---------- */
+  .pregled-ovoj{overflow-x:auto;background:var(--bel);border:1px solid var(--crta);border-radius:12px;padding:14px}
+  .pregled{display:flex;gap:0;min-width:760px}
+  .ure-levo{flex:0 0 62px}
+  .ure-glava{height:46px}
+  .ura-vrstica{
+    height:24px;font-size:11.5px;color:var(--sivo);display:flex;align-items:center;
+    justify-content:flex-end;padding-right:8px;
+  }
+  .ura-vrstica.blok{border-top:2px solid var(--crta-mocna)}
+  .ura-vrstica.pol{border-top:1px solid #e6e3dc}
+  .ura-vrstica.oznacena{background:var(--rumena);font-weight:700;color:var(--tekst)}
+
+  .skupina{padding:0 10px;border-radius:9px}
+  .skupina.modra{background:var(--modra-ozadje)}
+  .skupina.oranzna{background:var(--oranzna-ozadje)}
+  .skupina-ime{
+    height:46px;display:flex;align-items:center;font-size:12px;font-weight:700;
+    letter-spacing:1.2px;text-transform:uppercase;color:#4a4740;
+  }
+  .stolpci{display:flex;gap:4px}
+  .stolpec{width:56px;position:relative}
+  .stolpec .celica{height:24px;border-top:1px solid rgba(0,0,0,.05)}
+  .stolpec .celica.blok{border-top:2px solid rgba(0,0,0,.35)}
+  .palica{
+    position:absolute;left:0;right:0;background:var(--prosto);color:#fff;
+    border-radius:5px;font-size:11px;font-weight:600;text-align:center;
+    padding-top:3px;overflow:hidden;
+  }
+  .palica.umescen{background:var(--umescen)}
+  .palica.pogojno{background:#8a7a2e}
+  .palica small{display:block;font-size:9.5px;opacity:.85;font-weight:400}
+
+  .ure-desno{flex:0 0 52px;margin-left:8px}
+  .ura-st{
+    height:48px;border-top:2px solid var(--crta-mocna);font-size:12px;color:var(--sivo);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .legenda{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;align-items:center}
+  .lg{display:flex;align-items:center;gap:6px}
+  .kvadrat{width:14px;height:14px;border-radius:3px;display:inline-block}
+
+  .izpis{
+    margin-top:14px;background:var(--rumena);border:1px solid #e5d78a;border-radius:9px;
+    padding:11px 13px;font-size:13.5px;
+  }
+  .izpis b{font-weight:700}
+
+  .opomba-box{
+    margin-top:12px;background:#fff;border-left:3px solid var(--opomba);
+    padding:10px 13px;font-size:13px;border-radius:0 8px 8px 0;
+  }
+  .noga{margin-top:34px;font-size:12px;color:var(--sivo);text-align:center}
+</style>
+</head>
+<body>
+<div class="ovoj">
+
+  <h1>App_Termini — mirujoča slika</h1>
+  <p class="podnaslov">Samo videz. Nič ne deluje. Imena in ure so izmišljeni, vzeti iz vašega Excela. 2. 9. 2026</p>
+
+  <!-- ============ 1 ============ -->
+  <h2>1 · Kaj vidi starš na telefonu</h2>
+  <div class="karta">
+    <div class="vrsta">
+
+      <div class="telefon rel">
+        <div class="t-glava">
+          <div class="t-ime">Ana Kovač</div>
+          <div class="t-kraj">OŠ Trnovo · sreda in četrtek · 13.00–17.30</div>
+        </div>
+        <div class="t-navodilo">Povlecite čez ure, ko je Ana <b>prosta</b>.</div>
+        <div class="t-telo">
+
+          <div class="mreza-ovoj">
+            <div class="ure-stolpec">
+              <div style="height:20px"></div>
+              <div class="ura-oznaka">13.00</div>
+              <div class="ura-oznaka">14.00</div>
+              <div class="ura-oznaka">15.00</div>
+              <div class="ura-oznaka">16.00</div>
+              <div class="ura-oznaka">17.00</div>
+            </div>
+            <div class="dnevi">
+              <div class="dan">
+                <div class="dan-ime">sre</div>
+                <div class="polja">
+                  <div class="polje"></div><div class="polje pol"></div>
+                  <div class="polje on zacetek"></div><div class="polje on"></div>
+                  <div class="polje on"></div><div class="polje on"></div>
+                  <div class="polje on"></div><div class="polje on konec"></div>
+                  <div class="polje"></div><div class="polje pol"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                  <div class="polje on zacetek"></div><div class="polje on"></div>
+                  <div class="polje on"></div><div class="polje on konec"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                </div>
+              </div>
+              <div class="dan">
+                <div class="dan-ime">čet</div>
+                <div class="polja">
+                  <div class="polje"></div><div class="polje pol"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                  <div class="polje on zacetek"></div><div class="polje on"></div>
+                  <div class="polje on"></div><div class="polje on"></div>
+                  <div class="polje on"></div><div class="polje on konec"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                  <div class="polje"></div><div class="polje"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="seznam">
+            <div class="seznam-naslov">Prosti termini</div>
+            <div class="razpon"><span>sre &nbsp; 13.30 – 15.00</span><span class="x">✕</span></div>
+            <div class="razpon"><span>sre &nbsp; 16.00 – 17.00</span><span class="x">✕</span></div>
+            <div class="razpon"><span>čet &nbsp; 14.00 – 15.30</span><span class="x">✕</span></div>
+            <div class="dodaj">+ &nbsp;Dodaj razpon</div>
+            <div class="gumb">Potrdi</div>
+            <div class="t-pod">Povezavo lahko odprete znova in popravite.</div>
+          </div>
+
+        </div>
+
+        <!-- številke na sliki -->
+        <div class="znacka" style="top:126px;left:104px">1</div>
+        <div class="znacka" style="top:444px;left:8px">2</div>
+        <div class="znacka" style="top:444px;right:8px">3</div>
+        <div class="znacka" style="top:530px;left:120px">4</div>
+        <div class="znacka" style="top:582px;left:120px">5</div>
+      </div>
+
+      <div class="oznake">
+        <div class="oznaka"><div class="st">1</div><div>
+          <b>Poteg s prstom po mreži</b>
+          <span>Zeleno je prosto. Poteg navzdol označi, poteg čez že zeleno odznači.</span>
+        </div></div>
+        <div class="oznaka"><div class="st">2</div><div>
+          <b>Vsak poteg se takoj izpiše kot besedilo</b>
+          <span>Starš vidi točno uro, ne le barvo. Tu se pokaže, ali je pomotoma zajel 13.15 namesto 13.30.</span>
+        </div></div>
+        <div class="oznaka"><div class="st">3</div><div>
+          <b>✕ zbriše en razpon</b>
+          <span>Ni treba znova risati vsega. To je vaša želja 1b.</span>
+        </div></div>
+        <div class="oznaka"><div class="st">4</div><div>
+          <b>»Dodaj razpon« — brez vlečenja</b>
+          <span>Odpre dve kolesci: od 13.30 do 15.00. Za tiste, ki jim vlečenje ne gre, in za natančen popravek.</span>
+        </div></div>
+        <div class="oznaka"><div class="st">5</div><div>
+          <b>Potrdi</b>
+          <span>Konec. Nobene prijave, nobenega računa.</span>
+        </div></div>
+        <div class="opomba-box">
+          <b>Zakaj mreža <i>in</i> seznam hkrati?</b><br>
+          Mreža je hitra, a je na telefonu netočna. Seznam je točen, a počasen.
+          Skupaj se dopolnita: hitro povlečeš, na seznamu preveriš in popraviš.
+          Trije razponi v enem dnevu so tako enako lahki kot en sam.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 2 ============ -->
+  <h2>2 · Štiri poti za označevanje — kaj katera zna</h2>
+  <div class="poti">
+
+    <div class="pot priporocena">
+      <div class="zig">Priporočam</div>
+      <h3>A · Poteg + seznam</h3>
+      <div class="kdo">Mreža kot When2meet, seznam kot Calendly</div>
+      <p><span class="plus">+</span> Poteg, kot ste ga opisali v točki 3.</p>
+      <p><span class="plus">+</span> Več razponov na dan je naravno (želja 1b).</p>
+      <p><span class="plus">+</span> Popravek brez ponovnega risanja.</p>
+      <p><span class="minus">–</span> Če je razpon ur previsok za zaslon, se mreža in stran tepeta za prst.</p>
+    </div>
+
+    <div class="pot">
+      <div class="zig morda">Rezerva</div>
+      <h3>B · Pridržite in povlecite</h3>
+      <div class="kdo">Material Design, izbiranje besedila na iPhonu</div>
+      <p><span class="plus">+</span> Hiter poteg drsi po strani, pridržan prst barva. Spora ni.</p>
+      <p><span class="minus">–</span> Starš mora to vedeti. Potrebna je vrstica navodila.</p>
+      <p><span class="minus">–</span> Kdor pridrži prekratko, ne bo razumel, zakaj se nič ne zgodi.</p>
+    </div>
+
+    <div class="pot">
+      <div class="zig morda">Deluje, a ni to</div>
+      <h3>C · Tapni začetek, tapni konec</h3>
+      <div class="kdo">Booking strani, rezervacije</div>
+      <p><span class="plus">+</span> Nič spora z drsenjem. Enako z miško in prstom.</p>
+      <p><span class="plus">+</span> Najmanj kode od vseh.</p>
+      <p><span class="minus">–</span> Ni poteg. Ni to, kar ste želeli v točki 3.</p>
+    </div>
+
+    <div class="pot">
+      <div class="zig ne">Odsvetujem</div>
+      <h3>D · Drsnik</h3>
+      <div class="kdo">Ni ga v nobenem uveljavljenem programu za urnike</div>
+      <p><span class="minus">–</span> Vaš pomislek drži: točne ure z drsnikom ni mogoče zadeti.</p>
+      <p><span class="minus">–</span> En drsnik = en razpon. Za tri razpone trije drsniki.</p>
+      <p><span class="minus">–</span> Ročica mora biti široka 44 px; na 320 px zaslonu ostane malo poti.</p>
+      <p><span class="plus">→</span> Vse, kar ste od drsnika pričakovali, naredi gumb <b>»Dodaj razpon«</b> v točki 4 zgoraj.</p>
+    </div>
+
+  </div>
+
+  <!-- ============ 3 ============ -->
+  <h2>3 · Kaj vidim jaz — vsi učenci ene lokacije v stolpcih</h2>
+  <div class="pregled-ovoj">
+    <div class="pregled">
+
+      <!-- ure levo -->
+      <div class="ure-levo">
+        <div class="ure-glava"></div>
+        <div class="ura-vrstica blok">13.00</div>
+        <div class="ura-vrstica pol">13.15</div>
+        <div class="ura-vrstica blok">13.30</div>
+        <div class="ura-vrstica pol">13.45</div>
+        <div class="ura-vrstica blok">14.00</div>
+        <div class="ura-vrstica pol">14.15</div>
+        <div class="ura-vrstica blok oznacena">14.30</div>
+        <div class="ura-vrstica pol oznacena">14.45</div>
+        <div class="ura-vrstica blok">15.00</div>
+        <div class="ura-vrstica pol">15.15</div>
+        <div class="ura-vrstica blok">15.30</div>
+        <div class="ura-vrstica pol">15.45</div>
+        <div class="ura-vrstica blok">16.00</div>
+        <div class="ura-vrstica pol">16.15</div>
+        <div class="ura-vrstica blok">16.30</div>
+        <div class="ura-vrstica pol">16.45</div>
+        <div class="ura-vrstica blok">17.00</div>
+        <div class="ura-vrstica pol">17.15</div>
+      </div>
+
+      <!-- SREDA -->
+      <div class="skupina modra">
+        <div class="skupina-ime">Sreda</div>
+        <div class="stolpci">
+          <!-- Ana 13.00-15.15 (0..9), umeščena 13.00-13.30 -->
+          <div class="stolpec">
+            <div class="palica umescen" style="top:0;height:46px">Ana<small>13.00</small></div>
+            <div class="palica" style="top:48px;height:214px">Ana</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Izak 13.00-14.45 -->
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:190px">Izak</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Inja 13.00-14.00 -->
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:94px">Inja</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Bine 13.30-14.00 -->
+          <div class="stolpec">
+            <div class="palica" style="top:48px;height:46px">Bine</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Uroš 13.00-15.30 -->
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:238px">Uroš</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Lovro 13.00-14.45 -->
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:190px">Lovro</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Klara 14.30-15.30 -->
+          <div class="stolpec">
+            <div class="palica" style="top:144px;height:94px">Klara</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Leon 14.00-17.30 -->
+          <div class="stolpec">
+            <div class="palica" style="top:96px;height:334px">Leon</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <!-- Nastja 16.30-17.30 -->
+          <div class="stolpec">
+            <div class="palica" style="top:336px;height:94px">Nastja</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ČETRTEK -->
+      <div class="skupina oranzna" style="margin-left:10px">
+        <div class="skupina-ime">Četrtek</div>
+        <div class="stolpci">
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:190px">Ana</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:286px">Izak</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <div class="stolpec">
+            <div class="palica umescen" style="top:144px;height:46px">Klara<small>14.30</small></div>
+            <div class="palica pogojno" style="top:288px;height:46px">(Klara)</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <div class="stolpec">
+            <div class="palica" style="top:144px;height:142px">Julija</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <div class="stolpec">
+            <div class="palica" style="top:96px;height:334px">Ivo</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+          <div class="stolpec">
+            <div class="palica" style="top:0;height:430px">Tisa</div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div><div class="celica blok"></div><div class="celica"></div>
+            <div class="celica blok"></div><div class="celica"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- številke ur desno -->
+      <div class="ure-desno">
+        <div class="ure-glava" style="font-size:11px;color:#78756c;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px">ure</div>
+        <div class="ura-st">1</div>
+        <div class="ura-st">2</div>
+        <div class="ura-st">3</div>
+        <div class="ura-st">4</div>
+        <div class="ura-st">5</div>
+        <div class="ura-st">6</div>
+        <div class="ura-st">7</div>
+        <div class="ura-st">8</div>
+        <div class="ura-st">9</div>
+      </div>
+
+    </div>
+
+    <div class="legenda">
+      <div class="lg"><span class="kvadrat" style="background:#3f7d58"></span> prost</div>
+      <div class="lg"><span class="kvadrat" style="background:#1f5f8b"></span> tu je ura že umeščena</div>
+      <div class="lg"><span class="kvadrat" style="background:#8a7a2e"></span> pogojno (v vašem Excelu v oklepaju)</div>
+      <div class="lg"><span class="kvadrat" style="background:#fff4c2;border:1px solid #e5d78a"></span> vrstica, ki ste jo izbrali</div>
+      <div class="lg">debela črta = 30 minut = ena ura pouka</div>
+    </div>
+
+    <div class="izpis">
+      <b>Sreda 14.30 – 15.00</b> · lahko pride 6 učencev: Ana, Izak, Uroš, Lovro, Klara, Leon &nbsp;·&nbsp; zasedeno: —
+    </div>
+
+    <div class="opomba-box">
+      To je ista slika kot vaš Excel, samo da je ne tipkate. Nastane sama iz odgovorov.
+      Ura levo in imena zgoraj ostanejo na mestu, ko drsite. Klik na vrstico izpiše, kdo takrat lahko pride.
+      Klik na ime ga umesti v tisto uro.
+    </div>
+  </div>
+
+  <p class="noga">App_Termini · mirujoča slika za odločitev · nič od tega še ne deluje</p>
+</div>
+</body>
+</html>
