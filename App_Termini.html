@@ -14,7 +14,7 @@
    KORAK 5  popravljanje obstojecega razpona s klikom  (opravljeno 5. 9. 2026)
    KORAK 6  popravki po drugem preizkusu na telefonu   (7. 9. 2026)
 
-   RAZLICICA-07SEP-VZOREC
+   RAZLICICA-08SEP-PETINDVAJSET
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -57,14 +57,16 @@ body{
 .mreza{display:flex;gap:7px;user-select:none;-webkit-user-select:none;margin-top:10px}
 /* URESTRANI — stolpca z urami ob obeh straneh; tu drsenje PRIME, ker obdrzita
    privzeti "manipulation", prepoved pa velja samo nad stolpci dni */
-.ure{flex:0 0 42px}
+/* TOCKA2 (Borut, 8. 9. 2026): stranske ure vecje za 25 %. Pisava 13 -> 16,25 pik,
+   zato se mora stolpec razsiriti, sicer napis "13.00" ne gre vec vanj. */
+.ure{flex:0 0 47px}
 .ure.desno .ura-napis{text-align:left;padding-right:0;padding-left:5px}
 .ure .praznaGlava{height:20px}
 .ura-napis{
-  font-size:13px;color:var(--sivo);text-align:right;padding-right:5px;
-  line-height:1;position:relative;top:-6.5px;
+  font-size:16.25px;color:var(--sivo);text-align:right;padding-right:5px;
+  line-height:1;position:relative;top:-8.125px;
 }
-/* zamik je pol visine pisave, da napis sedi NA crti: 13 / 2 = 6,5 */
+/* zamik je pol visine pisave, da napis sedi NA crti: 16,25 / 2 = 8,125 */
 /* KORAK6 zelja 5: napis "30" ima ISTO barvo kot polne ure in stoji poravnan
    ob svoj stolpec - levi pod minutami (desna poravnava), desni pod urami
    (leva poravnava). Zato tu ni ne svoje barve ne svojega zamika. */
@@ -606,21 +608,22 @@ function narisiSeznam(staro){
 /* ====================================================================
    OKNO — KORAK 6 (Borut, 6. in 7. 9. 2026)
 
-   ENO SAMO PRAVILO ZA OBROBO: obroba stoji na TISTEM polju, ki edino se
-   manjka. Ce manjkata obe ali nobena, obrobe ni.
+   ENO SAMO PRAVILO ZA OBROBO (Borut, 8. 9. 2026): ko se okno odpre, sta
+   OBA gumba obrobljena. Ob PRVEM vnosu obroba izgine z obeh in se, dokler
+   je okno odprto, ne vrne vec - tudi ce stars uro se veckrat popravi.
+   Enako velja pri dodajanju in pri popravku.
 
    DODAJANJE
-   - ob odprtju: OD in DO kazeta crtico, obrobe ni, Dodaj je bled;
+   - ob odprtju: OD in DO kazeta crtico, oba sta obrobljena, Dodaj je bled;
      klik na OD, na DO ali na Dodaj se oglasi z "Izberite najprej dan."
    - po izbiri dneva aplikacija NE izpolni nicesar sama
-   - stars izpolni katerokoli polje prvo: ko izpolni OD, se obrobi DO;
-     ko izpolni DO, se obrobi OD
-   - ko sta izpolnjena oba, obroba izgine in Dodaj se prizge
+   - stars izpolni katerokoli polje prvo; kolesci se omejujeta druga drugo
+   - ko sta izpolnjena oba, se Dodaj prizge
 
    POPRAVEK
    - v vrstici z dnevi je SAMO dan tega razpona, kot navaden zapis
      (videti enak kot aktiven gumb), ki se na klik ne odziva
-   - OD in DO sta ze izpolnjena, zato obrobe ni nikoli
+   - OD in DO sta ze izpolnjena, a sta ob odprtju vseeno obrobljena
    - Shrani je ob odprtju bled; prizge se sele, ko je ura RES drugacna od
      tiste, s katero se je okno odprlo, in spet zbledi, ce jo stars vrne
    ==================================================================== */
@@ -639,6 +642,7 @@ var elDodajPotrdi = document.getElementById('gumbDodajPotrdi');
 var izbraniDan = null;                /* null = se ni izbran */
 var vPopravku  = null;                /* razpon, ki ga popravljamo */
 var staraOd = null, staraDo = null;   /* uri, s katerima se je okno odprlo */
+var dotaknjeno = false;               /* ali je stars v tem oknu ze vnesel uro */
 
 function vrednost(el){ return el.value === '' ? null : +el.value; }
 
@@ -688,9 +692,9 @@ function osveziStanjeOkna(){
   elOkvirOd.classList.toggle('ugasnjen', !danIzbran);
   elOkvirDo.classList.toggle('ugasnjen', !danIzbran);
 
-  /* obroba samo na tistem polju, ki edino se manjka */
-  elOkvirOd.classList.toggle('na-vrsti', doIzpolnjen && !odIzpolnjen);
-  elOkvirDo.classList.toggle('na-vrsti', odIzpolnjen && !doIzpolnjen);
+  /* obroba na OBEH, dokler stars v tem oknu se ni vnesel nobene ure */
+  elOkvirOd.classList.toggle('na-vrsti', !dotaknjeno);
+  elOkvirDo.classList.toggle('na-vrsti', !dotaknjeno);
 
   /* pri popravku se gumb prizge sele ob RESNICNI spremembi ure;
      ce stars uro vrne na staro, gumb spet zbledi (Borut, 7. 9. 2026) */
@@ -745,6 +749,7 @@ elOkvirOd.addEventListener('click', klikNaUgasnjeno);
 elOkvirDo.addEventListener('click', klikNaUgasnjeno);
 
 function poIzbiriUre(){
+  dotaknjeno = true;            /* prvi vnos ugasne obrobo na obeh gumbih */
   napolniKolesci(vrednost(elOd), vrednost(elDo));
   osveziStanjeOkna();
 }
@@ -752,7 +757,7 @@ elOd.addEventListener('change', poIzbiriUre);
 elDo.addEventListener('change', poIzbiriUre);
 
 function odpriOkno(){
-  vPopravku = null; staraOd = null; staraDo = null;
+  vPopravku = null; staraOd = null; staraDo = null; dotaknjeno = false;
   elNaslov.textContent = 'Dodaj razpon';
   elDodajPotrdi.textContent = 'Dodaj';
   obvestiloDan(false);
@@ -769,7 +774,7 @@ function odpriOkno(){
 /* okno se odpre z urama popravljanega razpona */
 function odpriOknoZaPopravek(x){
   vPopravku = x;
-  staraOd = x.od; staraDo = x.do;
+  staraOd = x.od; staraDo = x.do; dotaknjeno = false;
   elNaslov.textContent = 'Popravi razpon';
   elDodajPotrdi.textContent = 'Shrani';
   obvestiloDan(false);
