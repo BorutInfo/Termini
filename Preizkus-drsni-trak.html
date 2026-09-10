@@ -6,7 +6,7 @@
 <title>Preizkus — drseči trak</title>
 <style>
 /* ====================================================================
-   RAZLICICA-10SEP-TRAK
+   RAZLICICA-10SEP-TRAK3
    Merilna stran za KORAK 7 (drseče polje). NI del aplikacije.
    Meri tri stvari, ki jih v namiznem brskalniku ni mogoče izmeriti:
    1. ali drsenje traku in poteg po poljih delujeta drug ob drugem
@@ -79,6 +79,14 @@ h1{font-size:17px;margin:14px 0 2px}
   width:100%;margin-top:9px;padding:9px;border:1px solid var(--crta);background:#fff;
   border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--sivo);cursor:pointer;
 }
+.porocilo{font-size:12px;color:#5c594f;text-align:center;margin-top:5px;min-height:16px}
+.porocilo b{color:#2f6b48}
+.dnevnik{background:#fff;border:1px solid var(--crta);border-radius:12px;padding:11px;margin-bottom:16px}
+.dnevnik table{width:100%;border-collapse:collapse;font-size:12.5px}
+.dnevnik th{text-align:left;font-weight:700;color:#5c594f;border-bottom:1px solid var(--crta);padding:3px 4px}
+.dnevnik td{padding:3px 4px;border-bottom:1px solid #efece5}
+.dnevnik td.z{color:var(--oznaka);font-weight:700}
+.dnevnik td.n{color:#2f6b48;font-weight:700}
 .zig{font-size:11.5px;color:#a3a096;text-align:center;margin:2px 0 18px}
 </style>
 </head>
@@ -104,13 +112,16 @@ h1{font-size:17px;margin:14px 0 2px}
   </div>
   <div class="izid" id="izid1"></div>
   <button class="ponastavi" id="p1r">Ponastavi prvi poskus</button>
+  <div class="porocilo" id="por1"></div>
 </div>
 
 <!-- ================= POSKUS 2 ================= -->
 <div class="poskus">
   <div class="naslov">2 · Koliko dni odnese zamah</div>
   <div class="navodilo">
-    Zamahnite po traku enkrat počasi in enkrat močno. Spodaj piše, za koliko dni se je premaknil.
+    Zamahnite po vsakem traku večkrat: enkrat počasi, enkrat močno, pa še kakšenkrat vmes.
+    <b>Vsak zamah dobi svojo vrstico</b>, zato se počasni in hitri vidijo drug ob drugem.
+    Trak ima za ta poskus enaindvajset stolpcev, da ima močan zamah kam odnesti.
   </div>
 
   <div class="podnaslov">kolikor jih nese zamah</div>
@@ -122,6 +133,7 @@ h1{font-size:17px;margin:14px 0 2px}
   <div class="izid" id="izid3"></div>
 
   <button class="ponastavi" id="p2r">Ponastavi drugi poskus</button>
+  <div class="porocilo" id="por2"></div>
 </div>
 
 <!-- ================= POSKUS 3 ================= -->
@@ -141,9 +153,18 @@ h1{font-size:17px;margin:14px 0 2px}
   </div>
   <div class="izid" id="izid4"></div>
   <button class="ponastavi" id="p3r">Ponastavi tretji poskus</button>
+  <div class="porocilo" id="por3"></div>
 </div>
 
-<div class="zig">RAZLICICA-10SEP-TRAK</div>
+<div class="dnevnik">
+  <div class="naslov">Dnevnik dotikov</div>
+  <div class="navodilo">Zadnjih šest dotikov po vsej strani. »Zavrnjen« pomeni, da je zaščita proti dvojnemu tapu ta dotik ustavila.</div>
+  <table id="dnevnik">
+    <tr><th>čas od prejšnjega</th><th>razdalja</th><th>kaj ste se dotaknili</th><th>zavrnjen</th></tr>
+  </table>
+</div>
+
+<div class="zig">RAZLICICA-10SEP-TRAK3</div>
 
 <script>
 /* ====================================================================
@@ -164,13 +185,45 @@ h1{font-size:17px;margin:14px 0 2px}
     var t = e.changedTouches[0], zdaj = Date.now();
     var dx = t.clientX - zadnjiX, dy = t.clientY - zadnjiY;
     var blizu = Math.sqrt(dx*dx + dy*dy) < PRAG_PIK;
+    var razmik = zadnjiCas ? (zdaj - zadnjiCas) : 0;
+    var razdalja = zadnjiCas ? Math.round(Math.sqrt(dx*dx + dy*dy)) : 0;
     if (zdaj - zadnjiCas < PRAG_CAS && blizu){
       if (e.cancelable) e.preventDefault();
+      zapisiDotik(razmik, razdalja, e.target, true, t.clientX, t.clientY);
       zadnjiCas = 0; return;
     }
+    zapisiDotik(razmik, razdalja, e.target, false, t.clientX, t.clientY);
     zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
   }, { passive: false });
 })();
+
+/* ---------- dnevnik dotikov ---------- */
+var DOTIKI = [];
+function opisCilja(el){
+  if (!el || !el.closest) return 'stran';
+  if (el.closest('.ponastavi')) return 'gumb Ponastavi';
+  if (el.closest('.gumb-p'))    return 'puščica';
+  if (el.closest('.polje'))     return 'polje v tabeli';
+  if (el.closest('.kratica'))   return 'kratica v traku';
+  if (el.closest('.drsnik'))    return 'trak';
+  return 'stran';
+}
+function zapisiDotik(razmik, razdalja, cilj, zavrnjen, x, y){
+  var opis = opisCilja(cilj);
+  if (opis === 'stran' && document.elementFromPoint) opis = opisCilja(document.elementFromPoint(x, y));
+  DOTIKI.push({ razmik: razmik, razdalja: razdalja, cilj: opis, zavrnjen: zavrnjen });
+  if (DOTIKI.length > 6) DOTIKI.shift();
+  var t = document.getElementById('dnevnik');
+  if (!t) return;
+  var h = '<tr><th>čas od prejšnjega</th><th>razdalja</th><th>kaj ste se dotaknili</th><th>zavrnjen</th></tr>';
+  for (var i = DOTIKI.length - 1; i >= 0; i--){
+    var d = DOTIKI[i];
+    h += '<tr><td>' + (d.razmik ? d.razmik + ' ms' : '—') + '</td><td>' +
+         (d.razmik ? d.razdalja + ' pik' : '—') + '</td><td>' + d.cilj + '</td><td class="' +
+         (d.zavrnjen ? 'z">DA' : 'n">ne') + '</td></tr>';
+  }
+  t.innerHTML = h;
+}
 
 var TEDEN = ['pon','tor','sre','čet','pet','sob','ned'];
 var SIRINA = 58, PRESLEDEK = 7, KORAK_PIK = SIRINA + PRESLEDEK, VRSTIC = 8;
@@ -214,8 +267,8 @@ function napolni(pasId, imena, sPoljem, vednoEnDan){
   }
 }
 napolni('pas1', TEDEN, true,  false);
-napolni('pas2', TEDEN, false, false);
-napolni('pas3', TEDEN, false, true);
+napolni('pas2', TEDEN.concat(TEDEN).concat(TEDEN), false, false);   /* 21 stolpcev */
+napolni('pas3', TEDEN.concat(TEDEN).concat(TEDEN), false, true);
 napolni('pas4', TEDEN.concat(TEDEN), true, false);   /* stirinajst stolpcev */
 
 /* ---------- skupne racunske funkcije ---------- */
@@ -269,6 +322,26 @@ function animiraj(el, cilj, trajanje){
     if (delez < 1) el._anim = requestAnimationFrame(korak);
   }
   el._anim = requestAnimationFrame(korak);
+}
+
+/* ---------- gumb Ponastavi: odzove se na pritisk IN na klik ----------
+   Pod gumbom pise, kaj je res prislo do njega. Tako se vidi, ali klik
+   sploh pride, ne da bi bilo treba ugibati. */
+function naPritiskInKlik(gumbId, porociloId, opravi){
+  var gumb = document.getElementById(gumbId);
+  var por  = document.getElementById(porociloId);
+  var zadnjiPritisk = 0;
+  function povej(besedilo){ if (por) por.innerHTML = 'zadnjič sprožil: <b>' + besedilo + '</b>'; }
+  gumb.addEventListener('pointerdown', function(){
+    zadnjiPritisk = Date.now();
+    opravi();
+    povej('pritisk (klik še ni prišel)');
+  });
+  gumb.addEventListener('click', function(){
+    if (Date.now() - zadnjiPritisk < 900){ povej('pritisk, klik je prišel za njim'); return; }
+    opravi();
+    povej('klik');
+  });
 }
 
 /* ====================================================================
@@ -331,7 +404,7 @@ d1.addEventListener('pointerup', function(e){ konec1(e, false); });
 d1.addEventListener('pointercancel', function(e){ konec1(e, true); });
 document.getElementById('g1L').addEventListener('pointerdown', function(){ premakni(d1, -1); });
 document.getElementById('g1D').addEventListener('pointerdown', function(){ premakni(d1, +1); });
-document.getElementById('p1r').addEventListener('click', function(){
+naPritiskInKlik('p1r', 'por1', function(){
   var polja = document.querySelectorAll('#pas1 .polje.oznaceno');
   for (var i = 0; i < polja.length; i++) polja[i].classList.remove('oznaceno');
   d1._cilj = 0; d1.scrollLeft = 0;
@@ -341,26 +414,49 @@ document.getElementById('p1r').addEventListener('click', function(){
 /* ====================================================================
    POSKUS 2 — koliko dni odnese zamah
    ==================================================================== */
+function dnevi(n){
+  if (n === 1) return '1 dan';
+  if (n === 2) return '2 dneva';
+  if (n === 3 || n === 4) return n + ' dnevi';
+  return n + ' dni';
+}
 function merilnik(drsnikId, izidId, ime){
   var d = document.getElementById(drsnikId);
   var izid = document.getElementById(izidId);
-  var zacetek = 0, zacetniX = 0, zacetniCas = 0, cas = 0, razdalja = 0, casovnik = null, prejsnji = null;
+  var zapisi = [], zacetek = 0, zacetniX = 0, zacetniCas = 0;
+  var cas = 0, razdalja = 0, casovnik = null, cakaZapis = false;
 
-  function izpisi(){
-    var dni = Math.abs(priKateremDnevu(d) - zacetek);
-    izid.innerHTML =
-      vrstica('Zamah je premaknil za dni', dni, dni > 0) +
-      vrstica('Gib je trajal (ms)', cas, true) +
-      vrstica('Prst je prepotoval (pik)', razdalja, true) +
-      (prejsnji === null ? '' : vrstica('Prejšnji zamah je premaknil za dni', prejsnji, true));
-    prejsnji = dni;
+  function izrisi(){
+    if (!zapisi.length){
+      izid.innerHTML = '<div><span>' + ime + '</span><b>zamahnite po traku</b></div>';
+      return;
+    }
+    var h = '';
+    for (var i = 0; i < zapisi.length; i++){
+      var z = zapisi[i];
+      h += '<div><span>' + (i+1) + '. zamah &middot; ' + z.cas + ' ms &middot; ' +
+           z.razdalja + ' pik &middot; ' + z.hitrost + ' pik/s</span>' +
+           '<b class="' + (z.dni > 0 ? 'dobro' : 'slabo') + '">' + dnevi(z.dni) + '</b></div>';
+    }
+    izid.innerHTML = h;
+  }
+  function zapisi_zamah(){
+    if (!cakaZapis) return;                 /* brez dotika ni zapisa */
+    cakaZapis = false;
+    var premik = Math.abs(priKateremDnevu(d) - zacetek);
+    var hitrost = cas > 0 ? Math.round(razdalja / cas * 1000) : 0;
+    zapisi.push({ dni: premik, cas: cas, razdalja: razdalja, hitrost: hitrost });
+    if (zapisi.length > 8) zapisi.shift();  /* hranimo zadnjih osem */
+    izrisi();
   }
   function poCakanju(){
     if (casovnik) clearTimeout(casovnik);
-    casovnik = setTimeout(izpisi, 280);      /* nadomestek za scrollend */
+    casovnik = setTimeout(zapisi_zamah, 280);   /* nadomestek za scrollend */
   }
   d.addEventListener('touchstart', function(e){
     if (!e.touches || !e.touches.length) return;
+    if (casovnik) clearTimeout(casovnik);
+    zapisi_zamah();                          /* prejsnji zamah zakljuci takoj */
     zacetek = priKateremDnevu(d);
     zacetniX = e.touches[0].clientX;
     zacetniCas = Date.now();
@@ -369,18 +465,17 @@ function merilnik(drsnikId, izidId, ime){
     var t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
     cas = Date.now() - zacetniCas;
     razdalja = t ? Math.round(Math.abs(t.clientX - zacetniX)) : 0;
+    cakaZapis = true;
     poCakanju();
   }, { passive: true });
-  d.addEventListener('scroll', poCakanju);
+  d.addEventListener('scroll', function(){ if (cakaZapis) poCakanju(); });
 
-  izid.innerHTML = '<div><span>' + ime + '</span><b>zamahnite po traku</b></div>';
-  return d;
+  izrisi();
+  return { el: d, pocisti: function(){ zapisi = []; cakaZapis = false; d.scrollLeft = 0; izrisi(); } };
 }
-var d2 = merilnik('drsnik2', 'izid2', 'kolikor jih nese zamah');
-var d3 = merilnik('drsnik3', 'izid3', 'vedno en dan');
-document.getElementById('p2r').addEventListener('click', function(){
-  d2.scrollLeft = 0; d3.scrollLeft = 0;
-});
+var m2 = merilnik('drsnik2', 'izid2', 'kolikor jih nese zamah');
+var m3 = merilnik('drsnik3', 'izid3', 'vedno en dan');
+naPritiskInKlik('p2r', 'por2', function(){ m2.pocisti(); m3.pocisti(); });
 
 /* ====================================================================
    POSKUS 3 — hitro pritiskanje puščice
@@ -413,7 +508,7 @@ d4.addEventListener('scroll', function(){
   osveziCrtico(d4, 'crtica4');
   osveziGumba(d4, 'g3L', 'g3D', 'g3Lime', 'g3Dime');
 });
-document.getElementById('p3r').addEventListener('click', function(){
+naPritiskInKlik('p3r', 'por3', function(){
   d4._cilj = 0; d4.scrollLeft = 0;
   ponastavi3();
 });
