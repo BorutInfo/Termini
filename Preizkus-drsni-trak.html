@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Preizkus — drseči trak</title>
+<style>
+/* ====================================================================
+   RAZLICICA-10SEP-TRAK
+   Merilna stran za KORAK 7 (drseče polje). NI del aplikacije.
+   Meri tri stvari, ki jih v namiznem brskalniku ni mogoče izmeriti:
+   1. ali drsenje traku in poteg po poljih delujeta drug ob drugem
+   2. koliko dni odnese zamah prsta, in kaj naredi "vedno en dan"
+   3. ali hitro zaporedno pritiskanje puščice šteje vsak pritisk
+   ==================================================================== */
+:root{
+  --papir:#f4f3ef; --bel:#fff; --crta:#d9d6cd; --crta-temna:#2b2a27;
+  --sivo:#78756c; --prosto:#3f7d58; --tirnica:#e6e3da;
+  --crtica:#9a978d; --oznaka:#a8342a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papir);color:#1c1c1a;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 12px calc(24px + env(safe-area-inset-bottom));
+  overscroll-behavior:none;
+}
+h1{font-size:17px;margin:14px 0 2px}
+.uvod{font-size:13px;color:#5c594f;margin-bottom:14px}
+.poskus{background:#fff;border:1px solid var(--crta);border-radius:12px;padding:11px;margin-bottom:16px}
+.naslov{font-size:14.5px;font-weight:700;margin-bottom:3px}
+.navodilo{font-size:13px;color:#5c594f;margin-bottom:10px}
+.podnaslov{font-size:12.5px;font-weight:700;color:#5c594f;margin-bottom:4px}
+
+/* vrstica sega do roba kartice, da je trak enako širok kot v aplikaciji (188 pik) */
+.vrsta{display:flex;gap:7px;align-items:center;margin:0 -12px}
+.gumb-p{
+  flex:0 0 47px;height:32px;border:1.5px solid #8d8a80;background:#fff;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;gap:2px;
+  font-family:inherit;padding:0;cursor:pointer;user-select:none;-webkit-user-select:none;
+}
+.gumb-p b{font-size:12.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#3a382f}
+
+/* drsnik = en sam kos: kratica, tabela, kratica */
+.ovoj{flex:1;min-width:0}
+.drsnik{
+  overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.drsnik::-webkit-scrollbar{display:none}
+.pas{display:flex;gap:7px}
+.dan{flex:0 0 58px;scroll-snap-align:start}
+.dan.vedno{scroll-snap-stop:always}
+.kratica{
+  height:32px;line-height:32px;text-align:center;background:var(--tirnica);
+  border-radius:9px;font-size:12.5px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:#3a382f;
+}
+.stolpec{margin:5px 0}
+.polje{height:20px;touch-action:none;background:var(--bel);
+       border-left:1px solid var(--crta-temna);border-right:1px solid var(--crta-temna);
+       border-bottom:1px dashed var(--crta-temna)}
+.polje.prvo{border-top:1px solid var(--crta-temna);border-radius:5px 5px 0 0}
+.polje.zadnje{border-bottom:1px solid var(--crta-temna);border-radius:0 0 5px 5px}
+.polje.oznaceno{background:var(--prosto)}
+.crtica-pas{height:3px;background:#dcd9d0;border-radius:2px;margin-top:5px;position:relative}
+.crtica-pas i{position:absolute;top:0;height:3px;background:var(--crtica);border-radius:2px}
+
+.izid{background:#f2f1ec;border:1px solid var(--crta);border-radius:9px;
+      padding:9px 10px;margin-top:11px;font-size:13.5px;line-height:1.55}
+.izid div{display:flex;justify-content:space-between;gap:10px}
+.izid b{font-weight:700}
+.dobro{color:#2f6b48}
+.slabo{color:var(--oznaka)}
+.ponastavi{
+  width:100%;margin-top:9px;padding:9px;border:1px solid var(--crta);background:#fff;
+  border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--sivo);cursor:pointer;
+}
+.zig{font-size:11.5px;color:#a3a096;text-align:center;margin:2px 0 18px}
+</style>
+</head>
+<body>
+
+<h1>Preizkus — drseči trak</h1>
+<div class="uvod">Trije poskusi. Vsak sam izmeri, kaj se je zgodilo, in izpiše izid. Nič se ne shranjuje.</div>
+
+<!-- ================= POSKUS 1 ================= -->
+<div class="poskus">
+  <div class="naslov">1 · Trak in poteg drug ob drugem</div>
+  <div class="navodilo">
+    Najprej povlecite <b>po sivih kraticah</b> levo in desno — stolpci se morajo premikati.<br>
+    Nato povlecite <b>po belih poljih</b> navzdol — polja se morajo pobarvati zeleno, stran pa mirovati.
+  </div>
+  <div class="vrsta">
+    <button class="gumb-p" id="g1L"><svg width="9" height="15" viewBox="0 0 9 15" aria-hidden="true"><polyline points="7,1 1.6,7.5 7,14" fill="none" stroke="#3a382f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="g1Lime">pon</b></button>
+    <div class="ovoj">
+      <div class="drsnik" id="drsnik1"><div class="pas" id="pas1"></div></div>
+      <div class="crtica-pas" id="crtica1"><i></i></div>
+    </div>
+    <button class="gumb-p" id="g1D"><b id="g1Dime">ned</b><svg width="9" height="15" viewBox="0 0 9 15" aria-hidden="true"><polyline points="2,1 7.4,7.5 2,14" fill="none" stroke="#3a382f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="izid" id="izid1"></div>
+  <button class="ponastavi" id="p1r">Ponastavi prvi poskus</button>
+</div>
+
+<!-- ================= POSKUS 2 ================= -->
+<div class="poskus">
+  <div class="naslov">2 · Koliko dni odnese zamah</div>
+  <div class="navodilo">
+    Zamahnite po traku enkrat počasi in enkrat močno. Spodaj piše, za koliko dni se je premaknil.
+  </div>
+
+  <div class="podnaslov">kolikor jih nese zamah</div>
+  <div class="drsnik" id="drsnik2"><div class="pas" id="pas2"></div></div>
+  <div class="izid" id="izid2"></div>
+
+  <div class="podnaslov" style="margin-top:14px">vedno en dan</div>
+  <div class="drsnik" id="drsnik3"><div class="pas" id="pas3"></div></div>
+  <div class="izid" id="izid3"></div>
+
+  <button class="ponastavi" id="p2r">Ponastavi drugi poskus</button>
+</div>
+
+<!-- ================= POSKUS 3 ================= -->
+<div class="poskus">
+  <div class="naslov">3 · Hitro pritiskanje puščice</div>
+  <div class="navodilo">
+    Petkrat hitro zapored pritisnite desno puščico. Šteti mora <b>pet pritiskov in pet premikov</b>,
+    povečava pa se ne sme spremeniti. Trak ima za ta poskus štirinajst stolpcev, da vam dni ne zmanjka.
+  </div>
+  <div class="vrsta">
+    <button class="gumb-p" id="g3L"><svg width="9" height="15" viewBox="0 0 9 15" aria-hidden="true"><polyline points="7,1 1.6,7.5 7,14" fill="none" stroke="#3a382f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="g3Lime">pon</b></button>
+    <div class="ovoj">
+      <div class="drsnik" id="drsnik4"><div class="pas" id="pas4"></div></div>
+      <div class="crtica-pas" id="crtica4"><i></i></div>
+    </div>
+    <button class="gumb-p" id="g3D"><b id="g3Dime">ned</b><svg width="9" height="15" viewBox="0 0 9 15" aria-hidden="true"><polyline points="2,1 7.4,7.5 2,14" fill="none" stroke="#3a382f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="izid" id="izid4"></div>
+  <button class="ponastavi" id="p3r">Ponastavi tretji poskus</button>
+</div>
+
+<div class="zig">RAZLICICA-10SEP-TRAK</div>
+
+<script>
+/* ====================================================================
+   ZASCITA PROTI DVOJNEMU TAPU — prepisana iz App_Termini.html,
+   da je preizkus enak kot v aplikaciji (izmerjeni meji 350 ms in 40 pik).
+   ==================================================================== */
+(function(){
+  var PRAG_CAS = 350, PRAG_PIK = 40;
+  var zadnjiCas = 0, zadnjiX = 0, zadnjiY = 0, vecPrstov = false;
+  document.addEventListener('touchstart', function(e){
+    if (e.touches && e.touches.length > 1) vecPrstov = true;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e){
+    var koncano = !e.touches || e.touches.length === 0;
+    if (vecPrstov){ if (koncano){ vecPrstov = false; zadnjiCas = 0; } return; }
+    if (!koncano) return;
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    var t = e.changedTouches[0], zdaj = Date.now();
+    var dx = t.clientX - zadnjiX, dy = t.clientY - zadnjiY;
+    var blizu = Math.sqrt(dx*dx + dy*dy) < PRAG_PIK;
+    if (zdaj - zadnjiCas < PRAG_CAS && blizu){
+      if (e.cancelable) e.preventDefault();
+      zadnjiCas = 0; return;
+    }
+    zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
+  }, { passive: false });
+})();
+
+var TEDEN = ['pon','tor','sre','čet','pet','sob','ned'];
+var SIRINA = 58, PRESLEDEK = 7, KORAK_PIK = SIRINA + PRESLEDEK, VRSTIC = 8;
+
+function povecava(){
+  return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
+}
+function na2(x){ return (Math.round(x*100)/100).toFixed(2); }
+function vrstica(ime, vrednost, dobro){
+  return '<div><span>' + ime + '</span><b class="' + (dobro ? 'dobro' : 'slabo') + '">' + vrednost + '</b></div>';
+}
+
+/* ---------- risanje ---------- */
+function napolni(pasId, imena, sPoljem, vednoEnDan){
+  var pas = document.getElementById(pasId);
+  for (var i = 0; i < imena.length; i++){
+    var dan = document.createElement('div');
+    dan.className = 'dan' + (vednoEnDan ? ' vedno' : '');
+
+    var zgoraj = document.createElement('div');
+    zgoraj.className = 'kratica';
+    zgoraj.textContent = imena[i];
+    dan.appendChild(zgoraj);
+
+    if (sPoljem){
+      var stolpec = document.createElement('div');
+      stolpec.className = 'stolpec';
+      for (var v = 0; v < VRSTIC; v++){
+        var p = document.createElement('div');
+        p.className = 'polje' + (v === 0 ? ' prvo' : '') + (v === VRSTIC-1 ? ' zadnje' : '');
+        stolpec.appendChild(p);
+      }
+      dan.appendChild(stolpec);
+
+      var spodaj = document.createElement('div');
+      spodaj.className = 'kratica';
+      spodaj.textContent = imena[i];
+      dan.appendChild(spodaj);
+    }
+    pas.appendChild(dan);
+  }
+}
+napolni('pas1', TEDEN, true,  false);
+napolni('pas2', TEDEN, false, false);
+napolni('pas3', TEDEN, false, true);
+napolni('pas4', TEDEN.concat(TEDEN), true, false);   /* stirinajst stolpcev */
+
+/* ---------- skupne racunske funkcije ---------- */
+function steviloDni(drsnik){ return drsnik.querySelectorAll('.dan').length; }
+function imeDneva(drsnik, i){
+  var dan = drsnik.querySelectorAll('.dan')[i];
+  return dan ? dan.querySelector('.kratica').textContent : '';
+}
+function vidnihDni(drsnik){
+  return Math.max(1, Math.floor((drsnik.clientWidth + PRESLEDEK) / KORAK_PIK));
+}
+function priKateremDnevu(drsnik){ return Math.round(drsnik.scrollLeft / KORAK_PIK); }
+function zadnjiMozni(drsnik){ return Math.max(0, steviloDni(drsnik) - vidnihDni(drsnik)); }
+
+function osveziCrtico(drsnik, crticaId){
+  var el = document.getElementById(crticaId); if (!el) return;
+  var i = el.querySelector('i'), n = steviloDni(drsnik);
+  i.style.width = (vidnihDni(drsnik) / n * 100) + '%';
+  i.style.left  = (priKateremDnevu(drsnik) / n * 100) + '%';
+}
+function osveziGumba(drsnik, levId, desId, levIme, desIme){
+  var prvi = priKateremDnevu(drsnik), vidnih = vidnihDni(drsnik), n = steviloDni(drsnik);
+  var lev = document.getElementById(levId), des = document.getElementById(desId);
+  var jeLevi = prvi > 0, jeDesni = prvi + vidnih < n;
+  lev.style.visibility = jeLevi ? 'visible' : 'hidden';
+  des.style.visibility = jeDesni ? 'visible' : 'hidden';
+  if (jeLevi)  document.getElementById(levIme).textContent = imeDneva(drsnik, prvi - 1);
+  if (jeDesni) document.getElementById(desIme).textContent = imeDneva(drsnik, prvi + vidnih);
+}
+
+/* ---------- premik s pušcico: svoja animacija, 320 ms ----------
+   Cilj se hrani posebej, sicer dva hitra pritiska izracunata isti cilj. */
+function premakni(drsnik, koraki){
+  var zdaj = (drsnik._cilj === undefined) ? priKateremDnevu(drsnik) : drsnik._cilj;
+  var cilj = zdaj + koraki;
+  if (cilj < 0) cilj = 0;
+  if (cilj > zadnjiMozni(drsnik)) cilj = zadnjiMozni(drsnik);
+  var seJePremaknil = (cilj !== zdaj);
+  drsnik._cilj = cilj;
+  animiraj(drsnik, cilj * KORAK_PIK, 320);
+  return seJePremaknil;
+}
+function animiraj(el, cilj, trajanje){
+  var od = el.scrollLeft, razlika = cilj - od, zacetek = null;
+  if (el._anim) cancelAnimationFrame(el._anim);
+  function korak(cas){
+    if (zacetek === null) zacetek = cas;
+    var delez = Math.min(1, (cas - zacetek) / trajanje);
+    var mehko = delez < 0.5 ? 2*delez*delez : 1 - Math.pow(-2*delez + 2, 2)/2;
+    el.scrollLeft = od + razlika * mehko;
+    if (delez < 1) el._anim = requestAnimationFrame(korak);
+  }
+  el._anim = requestAnimationFrame(korak);
+}
+
+/* ====================================================================
+   POSKUS 1 — trak in poteg drug ob drugem
+   ==================================================================== */
+var d1 = document.getElementById('drsnik1');
+var s1, vlecem1 = false, nacin1 = true, nacinDolocen1 = false, zacetniY = 0;
+
+function ponastavi1(){
+  s1 = { polj:0, dni:0, stran:0, preklic:0, zac:povecava(), zad:povecava() };
+  izpis1();
+}
+function izpis1(){
+  document.getElementById('izid1').innerHTML =
+    vrstica('Označenih polj s potegom', s1.polj, s1.polj > 0) +
+    vrstica('Trak stoji pri dnevu', priKateremDnevu(d1) + 1, true) +
+    vrstica('Največji premik traku (dni)', s1.dni, s1.dni > 0) +
+    vrstica('Stran se je med potegom premaknila (pik)', s1.stran, s1.stran === 0) +
+    vrstica('Poteg je brskalnik prekinil (pointercancel)', s1.preklic, s1.preklic === 0) +
+    vrstica('Povečava', na2(s1.zac) + ' → ' + na2(s1.zad), Math.abs(s1.zac - s1.zad) < 0.01);
+}
+d1.addEventListener('scroll', function(){
+  osveziCrtico(d1, 'crtica1');
+  osveziGumba(d1, 'g1L', 'g1D', 'g1Lime', 'g1Dime');
+  if (priKateremDnevu(d1) > s1.dni) s1.dni = priKateremDnevu(d1);
+  izpis1();
+});
+d1.addEventListener('pointerdown', function(e){
+  var polje = e.target && e.target.closest ? e.target.closest('.polje') : null;
+  if (!polje) return;                       /* dotik kratice pusti brskalniku */
+  e.preventDefault();
+  vlecem1 = true; nacinDolocen1 = false;
+  zacetniY = window.scrollY;
+  s1.zad = povecava();
+  oznaci1(polje);
+  try { d1.setPointerCapture(e.pointerId); } catch(x){}
+});
+d1.addEventListener('pointermove', function(e){
+  if (!vlecem1) return;
+  e.preventDefault();
+  var el = document.elementFromPoint(e.clientX, e.clientY);
+  if (el && el.classList && el.classList.contains('polje')) oznaci1(el);
+});
+function oznaci1(el){
+  if (!nacinDolocen1){ nacin1 = !el.classList.contains('oznaceno'); nacinDolocen1 = true; }
+  if (el.classList.contains('oznaceno') === nacin1) return;
+  el.classList.toggle('oznaceno', nacin1);
+  s1.polj = document.querySelectorAll('#pas1 .polje.oznaceno').length;
+}
+function konec1(e, preklic){
+  if (!vlecem1) return;
+  vlecem1 = false;
+  try { d1.releasePointerCapture(e.pointerId); } catch(x){}
+  if (preklic) s1.preklic++;
+  s1.stran = Math.abs(window.scrollY - zacetniY);
+  s1.zad = povecava();
+  izpis1();
+}
+d1.addEventListener('pointerup', function(e){ konec1(e, false); });
+d1.addEventListener('pointercancel', function(e){ konec1(e, true); });
+document.getElementById('g1L').addEventListener('pointerdown', function(){ premakni(d1, -1); });
+document.getElementById('g1D').addEventListener('pointerdown', function(){ premakni(d1, +1); });
+document.getElementById('p1r').addEventListener('click', function(){
+  var polja = document.querySelectorAll('#pas1 .polje.oznaceno');
+  for (var i = 0; i < polja.length; i++) polja[i].classList.remove('oznaceno');
+  d1._cilj = 0; d1.scrollLeft = 0;
+  ponastavi1();
+});
+
+/* ====================================================================
+   POSKUS 2 — koliko dni odnese zamah
+   ==================================================================== */
+function merilnik(drsnikId, izidId, ime){
+  var d = document.getElementById(drsnikId);
+  var izid = document.getElementById(izidId);
+  var zacetek = 0, zacetniX = 0, zacetniCas = 0, cas = 0, razdalja = 0, casovnik = null, prejsnji = null;
+
+  function izpisi(){
+    var dni = Math.abs(priKateremDnevu(d) - zacetek);
+    izid.innerHTML =
+      vrstica('Zamah je premaknil za dni', dni, dni > 0) +
+      vrstica('Gib je trajal (ms)', cas, true) +
+      vrstica('Prst je prepotoval (pik)', razdalja, true) +
+      (prejsnji === null ? '' : vrstica('Prejšnji zamah je premaknil za dni', prejsnji, true));
+    prejsnji = dni;
+  }
+  function poCakanju(){
+    if (casovnik) clearTimeout(casovnik);
+    casovnik = setTimeout(izpisi, 280);      /* nadomestek za scrollend */
+  }
+  d.addEventListener('touchstart', function(e){
+    if (!e.touches || !e.touches.length) return;
+    zacetek = priKateremDnevu(d);
+    zacetniX = e.touches[0].clientX;
+    zacetniCas = Date.now();
+  }, { passive: true });
+  d.addEventListener('touchend', function(e){
+    var t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+    cas = Date.now() - zacetniCas;
+    razdalja = t ? Math.round(Math.abs(t.clientX - zacetniX)) : 0;
+    poCakanju();
+  }, { passive: true });
+  d.addEventListener('scroll', poCakanju);
+
+  izid.innerHTML = '<div><span>' + ime + '</span><b>zamahnite po traku</b></div>';
+  return d;
+}
+var d2 = merilnik('drsnik2', 'izid2', 'kolikor jih nese zamah');
+var d3 = merilnik('drsnik3', 'izid3', 'vedno en dan');
+document.getElementById('p2r').addEventListener('click', function(){
+  d2.scrollLeft = 0; d3.scrollLeft = 0;
+});
+
+/* ====================================================================
+   POSKUS 3 — hitro pritiskanje puščice
+   ==================================================================== */
+var d4 = document.getElementById('drsnik4');
+var s3;
+function ponastavi3(){
+  s3 = { pritiskov:0, premikov:0, zac:povecava(), zad:povecava() };
+  izpis3();
+}
+function izpis3(){
+  var ujema = (s3.pritiskov === s3.premikov) && s3.pritiskov > 0;
+  var cilj = (d4._cilj === undefined) ? 0 : d4._cilj;
+  document.getElementById('izid4').innerHTML =
+    vrstica('Pritiskov na puščico', s3.pritiskov, s3.pritiskov > 0) +
+    vrstica('Premikov traku', s3.premikov, ujema) +
+    vrstica('Trak stoji pri stolpcu', priKateremDnevu(d4) + 1, priKateremDnevu(d4) === cilj) +
+    vrstica('Povečava', na2(s3.zac) + ' → ' + na2(s3.zad), Math.abs(s3.zac - s3.zad) < 0.01);
+}
+function pritisk(smer){
+  s3.pritiskov++;
+  if (premakni(d4, smer)) s3.premikov++;
+  s3.zad = povecava();
+  izpis3();
+  setTimeout(izpis3, 400);                   /* ko se animacija umiri */
+}
+document.getElementById('g3L').addEventListener('pointerdown', function(){ pritisk(-1); });
+document.getElementById('g3D').addEventListener('pointerdown', function(){ pritisk(+1); });
+d4.addEventListener('scroll', function(){
+  osveziCrtico(d4, 'crtica4');
+  osveziGumba(d4, 'g3L', 'g3D', 'g3Lime', 'g3Dime');
+});
+document.getElementById('p3r').addEventListener('click', function(){
+  d4._cilj = 0; d4.scrollLeft = 0;
+  ponastavi3();
+});
+
+/* ---------- zacetno stanje ---------- */
+ponastavi1(); ponastavi3();
+osveziCrtico(d1, 'crtica1'); osveziGumba(d1, 'g1L', 'g1D', 'g1Lime', 'g1Dime');
+osveziCrtico(d4, 'crtica4'); osveziGumba(d4, 'g3L', 'g3D', 'g3Lime', 'g3Dime');
+</script>
+</body>
+</html>
