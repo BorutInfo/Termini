@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Preizkus — zaščita proti povečavi</title>
+<style>
+/* ====================================================================
+   RAZLICICA-12SEP-ZASCITA
+   Merilna stran za KORAK 8. NI del aplikacije.
+
+   Preverja eno samo stvar: ali se pri hitrem zaporednem pritiskanju
+   zaslon poveča. Levo polje ima DANASNJO zascito, desno POPRAVLJENO.
+   Razlika je ena sama vrstica: kaj se zgodi z zavrnjenim dotikom.
+   ==================================================================== */
+:root{
+  --papir:#f4f3ef; --bel:#fff; --crta:#d9d6cd; --sivo:#78756c;
+  --prosto:#3f7d58; --oznaka:#a8342a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papir);color:#1c1c1a;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 12px calc(24px + env(safe-area-inset-bottom));
+  overscroll-behavior:none;
+}
+h1{font-size:17px;margin:14px 0 2px}
+.uvod{font-size:13px;color:#5c594f;margin-bottom:14px}
+.polje{background:#fff;border:1px solid var(--crta);border-radius:12px;padding:11px;margin-bottom:16px}
+.naslov{font-size:14.5px;font-weight:700;margin-bottom:3px}
+.navodilo{font-size:13px;color:#5c594f;margin-bottom:10px}
+.tipka{
+  width:100%;height:64px;border:2px solid var(--prosto);background:#fff;border-radius:10px;
+  font-family:inherit;font-size:16px;font-weight:700;color:var(--prosto);cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+}
+.izid{background:#f2f1ec;border:1px solid var(--crta);border-radius:9px;
+      padding:9px 10px;margin-top:11px;font-size:13.5px;line-height:1.55}
+.izid div{display:flex;justify-content:space-between;gap:10px}
+.izid b{font-weight:700}
+.dobro{color:#2f6b48}
+.slabo{color:var(--oznaka)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:9px}
+th{text-align:left;font-weight:700;color:#5c594f;border-bottom:1px solid var(--crta);padding:3px 4px}
+td{padding:3px 4px;border-bottom:1px solid #efece5}
+td.z{color:var(--oznaka);font-weight:700}
+td.n{color:#2f6b48;font-weight:700}
+.ponastavi{
+  width:100%;margin-top:9px;padding:9px;border:1px solid var(--crta);background:#fff;
+  border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--sivo);cursor:pointer;
+}
+.opomba{font-size:12.5px;color:#5c594f;background:#fff;border:1px solid var(--crta);
+        border-radius:12px;padding:11px;margin-bottom:16px}
+.zig{font-size:11.5px;color:#a3a096;text-align:center;margin:2px 0 18px}
+</style>
+</head>
+<body>
+
+<h1>Preizkus — zaščita proti povečavi</h1>
+<div class="uvod">Dve polji. V vsakem <b>hitro zapored desetkrat pritisnite</b> zeleno tipko, tako hitro kot na puščico v aplikaciji. Nato poglejte, ali se je povečava spremenila.</div>
+
+<!-- ================= DANASNJA ================= -->
+<div class="polje">
+  <div class="naslov">1 · Današnja zaščita</div>
+  <div class="navodilo">Tako je v aplikaciji zdaj. Ko zaščita en dotik zavrne, si ga ne zapomni.</div>
+  <button class="tipka" id="tipkaA">Pritisnite hitro desetkrat</button>
+  <div class="izid" id="izidA"></div>
+  <table id="dnevnikA"></table>
+  <button class="ponastavi" id="ponastaviA">Ponastavi prvo polje</button>
+</div>
+
+<!-- ================= POPRAVLJENA ================= -->
+<div class="polje">
+  <div class="naslov">2 · Popravljena zaščita</div>
+  <div class="navodilo">Ena sama vrstica drugače: zavrnjeni dotik si zaščita zapomni in z njim primerja naslednjega.</div>
+  <button class="tipka" id="tipkaB">Pritisnite hitro desetkrat</button>
+  <div class="izid" id="izidB"></div>
+  <table id="dnevnikB"></table>
+  <button class="ponastavi" id="ponastaviB">Ponastavi drugo polje</button>
+</div>
+
+<div class="opomba">
+  Zaščita na tej strani velja <b>samo znotraj obeh belih polj</b>. Drugod je stran nezaščitena in
+  se ob dvojnem tapu poveča — to je normalno in ni napaka.<br>
+  Če se povečava pokvari, jo vrnete s ščipanjem z dvema prstoma ali z gumbom za ponastavitev.
+</div>
+
+<div class="zig">RAZLICICA-12SEP-ZASCITA</div>
+
+<script>
+function povecava(){
+  return (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
+}
+function na2(x){ return (Math.round(x*100)/100).toFixed(2); }
+function vrstica(ime, vrednost, dobro){
+  return '<div><span>' + ime + '</span><b class="' + (dobro ? 'dobro' : 'slabo') + '">' + vrednost + '</b></div>';
+}
+
+/* ====================================================================
+   Zascita. Edina razlika med poljema je "zapomniZavrnjene":
+   - false = danasnja koda: po zavrnitvi se stevec postavi na nic,
+     zato gre NASLEDNJI dotik vedno skozi
+   - true  = popravek: zavrnjeni dotik postane nova primerjava
+   ==================================================================== */
+function zascita(imePolja, tipkaId, izidId, dnevnikId, ponastaviId, zapomniZavrnjene){
+  var PRAG_CAS = 350, PRAG_PIK = 40;
+  var tipka = document.getElementById(tipkaId);
+  var polje = tipka.parentNode;
+  var izid  = document.getElementById(izidId);
+  var tabela= document.getElementById(dnevnikId);
+
+  var zadnjiCas = 0, zadnjiX = 0, zadnjiY = 0, vecPrstov = false;
+  var s;
+
+  function ponastavi(){
+    s = { pritiskov:0, zavrnjenih:0, prepuscenih:0, zac:povecava(), naj:povecava(), dnevnik:[] };
+    zadnjiCas = 0; zadnjiX = 0; zadnjiY = 0; vecPrstov = false;
+    izpisi();
+  }
+  function izpisi(){
+    var seJePovecalo = Math.abs(s.naj - s.zac) >= 0.01;
+    izid.innerHTML =
+      vrstica('Pritiskov na tipko', s.pritiskov, s.pritiskov > 0) +
+      vrstica('Dotikov je zaščita zavrnila', s.zavrnjenih, true) +
+      vrstica('Dotikov je šlo skozi', s.prepuscenih, true) +
+      vrstica('Povečava', na2(s.zac) + ' → ' + na2(s.naj), !seJePovecalo);
+    var h = '<tr><th>dotik</th><th>od prejšnjega</th><th>razdalja</th><th>zavrnjen</th></tr>';
+    for (var i = 0; i < s.dnevnik.length; i++){
+      var d = s.dnevnik[i];
+      h += '<tr><td>' + (i+1) + '.</td><td>' + (d.razmik ? d.razmik + ' ms' : '—') + '</td><td>' +
+           (d.razmik ? d.razdalja + ' pik' : '—') + '</td><td class="' +
+           (d.zavrnjen ? 'z">DA' : 'n">ne') + '</td></tr>';
+    }
+    tabela.innerHTML = h;
+  }
+  function zapisi(razmik, razdalja, zavrnjen){
+    s.dnevnik.push({ razmik: razmik, razdalja: razdalja, zavrnjen: zavrnjen });
+    if (s.dnevnik.length > 12) s.dnevnik.shift();
+  }
+
+  polje.addEventListener('touchstart', function(e){
+    if (e.touches && e.touches.length > 1) vecPrstov = true;
+  }, { passive: true });
+
+  polje.addEventListener('touchend', function(e){
+    var koncano = !e.touches || e.touches.length === 0;
+    if (vecPrstov){ if (koncano){ vecPrstov = false; zadnjiCas = 0; } return; }
+    if (!koncano) return;
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+
+    var t = e.changedTouches[0], zdaj = Date.now();
+    var dx = t.clientX - zadnjiX, dy = t.clientY - zadnjiY;
+    var razdalja = Math.round(Math.sqrt(dx*dx + dy*dy));
+    var razmik = zadnjiCas ? (zdaj - zadnjiCas) : 0;
+    var blizu = razdalja < PRAG_PIK;
+
+    if (zadnjiCas && (zdaj - zadnjiCas) < PRAG_CAS && blizu){
+      if (e.cancelable) e.preventDefault();
+      s.zavrnjenih++;
+      zapisi(razmik, razdalja, true);
+      if (zapomniZavrnjene){ zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY; }
+      else { zadnjiCas = 0; }
+      izpisi();
+      return;
+    }
+    s.prepuscenih++;
+    zapisi(razmik, razdalja, false);
+    zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
+    izpisi();
+  }, { passive: false });
+
+  /* tipka se odzove na pritisk, tako kot puscica v aplikaciji */
+  tipka.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    s.pritiskov++;
+    izpisi();
+  });
+
+  document.getElementById(ponastaviId).addEventListener('pointerdown', function(){ ponastavi(); });
+
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      if (povecava() > s.naj) s.naj = povecava();
+      izpisi();
+    });
+  }
+  ponastavi();
+}
+
+zascita('danasnja',    'tipkaA', 'izidA', 'dnevnikA', 'ponastaviA', false);
+zascita('popravljena', 'tipkaB', 'izidB', 'dnevnikB', 'ponastaviB', true);
+</script>
+</body>
+</html>
