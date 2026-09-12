@@ -16,8 +16,9 @@
 
    KORAK 7  drseci trak in sirina strani                (12. 9. 2026)
 
-   PREIZKUSNA KOPIJA S SEDMIMI DNEVI — ni aplikacija, samo za preizkus traku
-   RAZLICICA-12SEP-TRAK7DNI
+   KORAK 7 dodatka  dan pride na zaslon tudi navzgor/navzdol  (12. 9. 2026)
+
+   RAZLICICA-12SEP-PRIPELJI7DNI
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -715,6 +716,50 @@ function pripeljiDan(di, potem){
   setTimeout(potem, 360);
 }
 
+/* ====================================================================
+   DAN PRIDE NA ZASLON TUDI NAVZGOR ALI NAVZDOL (Borut, 12. 9. 2026)
+   Doslej je trak pripeljal dan samo vstran. Ce je bila stran zdrsana
+   drugam, starс popravljenega termina sploh ni videl.
+   IZMERJENO pri zaslonu 320x693: okno je visoko 287 pik, nad njim ostane
+   406 pik. Delovnik 13.00-20.00 je visok 560 pik in v ta prostor ne gre,
+   zato pokazemo en konec: vrh termina priblizno 40 pik pod zgornjim robom.
+   ==================================================================== */
+var ZRAK_NAD = 40;
+var animacijaStrani = null;
+
+function vrsticaIzUre(m){ return Math.round((m - ZACETEK) / KORAK); }
+function prvaOdprta(di){
+  for (var vi = 0; vi < VRSTIC; vi++) if (jeOdprto(di, vi)) return vi;
+  return 0;
+}
+function vrsticaNaZaslon(di, vi){
+  var polje = elMreza.querySelector('.polje[data-dan="' + di + '"][data-vrstica="' + vi + '"]');
+  if (!polje) return;
+  var cilj = window.scrollY + polje.getBoundingClientRect().top - ZRAK_NAD;
+  var najvec = document.documentElement.scrollHeight - window.innerHeight;
+  if (cilj < 0) cilj = 0;
+  if (cilj > najvec) cilj = najvec;
+  animirajStran(cilj, 320);
+}
+function animirajStran(cilj, trajanje){
+  var od = window.scrollY, razlika = cilj - od, zacetek = null;
+  if (Math.abs(razlika) < 2) return;
+  if (animacijaStrani) cancelAnimationFrame(animacijaStrani);
+  function korak(cas){
+    if (zacetek === null) zacetek = cas;
+    var delez = Math.min(1, (cas - zacetek) / trajanje);
+    var mehko = delez < 0.5 ? 2*delez*delez : 1 - Math.pow(-2*delez + 2, 2)/2;
+    window.scrollTo(0, od + razlika * mehko);
+    if (delez < 1) animacijaStrani = requestAnimationFrame(korak);
+  }
+  animacijaStrani = requestAnimationFrame(korak);
+}
+/* dan pride na zaslon v obe smeri hkrati: vstran s trakom, navzgor s stranjo */
+function naZaslon(di, vi, potem){
+  vrsticaNaZaslon(di, vi);
+  pripeljiDan(di, potem || function(){});
+}
+
 /* ob obratu telefona ali spremembi okna se razporeditev prešteje znova */
 var casovnikRisanja = null;
 function prerisi(){
@@ -850,7 +895,7 @@ function narisiSeznam(staro){
 
     /* KORAK5: klik kamor koli v vrstico odpre okno za popravek */
     vrstica.addEventListener('click', function(){
-      pripeljiDan(x.dan, function(){ odpriOknoZaPopravek(x); });
+      naZaslon(x.dan, x.odVi, function(){ odpriOknoZaPopravek(x); });
     });
 
     /* vrstica, ki je v starem seznamu ni bilo, zasveti */
@@ -1006,6 +1051,8 @@ function izberiDan(di){
   narisiDneve();
   napolniKolesci(null, null);   /* aplikacija ne izpolni nicesar sama */
   osveziStanjeOkna();
+  /* dan pride na zaslon, na zacetek svojega delovnika (Borut, 12. 9. 2026) */
+  naZaslon(di, prvaOdprta(di));
 }
 
 /* klik na ugasnjeno polje: OD in DO se oglasita enako kot gumb Dodaj */
@@ -1020,6 +1067,11 @@ function poIzbiriUre(kdo){
   else              caka = (caka === 'do') ? 'nobena' : 'od';
   napolniKolesci(vrednost(elOd), vrednost(elDo));
   osveziStanjeOkna();
+  /* ko sta izpolnjeni obe uri, se enkrat pokazemo izbrani razpon.
+     Med izbiranjem prve ure se ne premakne nic, da slika ne poskakuje. */
+  if (caka === 'nobena' && izbraniDan !== null && vrednost(elOd) !== null){
+    vrsticaNaZaslon(izbraniDan, vrsticaIzUre(vrednost(elOd)));
+  }
 }
 elOd.addEventListener('change', function(){ poIzbiriUre('od'); });
 elDo.addEventListener('change', function(){ poIzbiriUre('do'); });
