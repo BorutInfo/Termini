@@ -18,7 +18,9 @@
 
    KORAK 7 dodatka  dan pride na zaslon tudi navzgor/navzdol  (12. 9. 2026)
 
-   RAZLICICA-12SEP-PRIPELJI7DNI
+   Drsna crtica tudi v zgornjem traku                         (12. 9. 2026)
+
+   RAZLICICA-12SEP-CRTICA7DNI
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -134,6 +136,9 @@ body{
 .mreza.drsi .stran{gap:5px}
 .mreza.drsi .dan{display:flex;flex-direction:column;gap:5px}
 .okvir{position:relative;min-width:0}
+.mreza.drsi .okvir{display:flex;flex-direction:column;gap:5px}
+/* razmik pri stranskem stolpcu, da gumba ostaneta v liniji traku */
+.mreza.drsi .razmik{height:3px}
 .okno{position:relative}
 .tirnica{position:absolute;left:0;right:0;height:32px;background:var(--tirnica);
          border-radius:9px;z-index:0}
@@ -156,8 +161,8 @@ body{
   font-size:12.5px;font-weight:700;letter-spacing:.5px;
   text-transform:uppercase;color:#3a382f;
 }
-/* drsna crtica pove, kje med dnevi ste */
-.crtica-pas{height:3px;background:#dcd9d0;border-radius:2px;margin-top:5px;position:relative}
+/* drsna crtica pove, kje med dnevi ste; je nad zgornjim in pod spodnjim trakom */
+.crtica-pas{height:3px;background:#dcd9d0;border-radius:2px;position:relative;flex:0 0 3px}
 .crtica-pas i{position:absolute;top:0;height:3px;background:var(--crtica);border-radius:2px}
 /* puscica JE gumb: ima obrobo in ozadje, puscica je visja od crk */
 .puscica{
@@ -476,7 +481,7 @@ var drsi = false;             /* ali je trak vklopljen */
 var vidnihDni = 1;            /* koliko stolpcev je hkrati na zaslonu */
 var sirinaStolpca = NAJOZJI;
 var prviDan = 0;              /* kateri stolpec je skrajno levi */
-var elDrsnik = null, elCrtica = null;
+var elDrsnik = null, elCrtice = [];
 
 function razpored(){
   var naVoljo = document.documentElement.clientWidth - 24;   /* brez robov strani */
@@ -537,13 +542,18 @@ function stolpecUr(stran){
   return ure;
 }
 
+function razmik(){
+  var r = document.createElement('div');
+  r.className = 'razmik';
+  return r;
+}
 function stranskiStolpec(stran){
   var kos = document.createElement('div');
   kos.className = 'stran';
   kos.style.flex = '0 0 ' + SIRINA_UR + 'px';
-  if (drsi) kos.appendChild(puscica(stran, 'zgoraj'));
+  if (drsi){ kos.appendChild(razmik()); kos.appendChild(puscica(stran, 'zgoraj')); }
   kos.appendChild(stolpecUr(stran));
-  if (drsi) kos.appendChild(puscica(stran, 'spodaj'));
+  if (drsi){ kos.appendChild(puscica(stran, 'spodaj')); kos.appendChild(razmik()); }
   return kos;
 }
 
@@ -627,16 +637,23 @@ function narisiMrezo(){
 
   drsnik.appendChild(pas);
   okno.appendChild(drsnik);
-  okvir.appendChild(okno);
 
+  elCrtice = [];
   if (drsi){
-    var crtica = document.createElement('div');
-    crtica.className = 'crtica-pas';
-    crtica.appendChild(document.createElement('i'));
-    okvir.appendChild(crtica);
-    elCrtica = crtica;
-  } else {
-    elCrtica = null;
+    /* crtica je nad zgornjim in pod spodnjim trakom (Borut, 12. 9. 2026) */
+    var zgornja = document.createElement('div');
+    zgornja.className = 'crtica-pas';
+    zgornja.appendChild(document.createElement('i'));
+    okvir.appendChild(zgornja);
+    elCrtice.push(zgornja);
+  }
+  okvir.appendChild(okno);
+  if (drsi){
+    var spodnja = document.createElement('div');
+    spodnja.className = 'crtica-pas';
+    spodnja.appendChild(document.createElement('i'));
+    okvir.appendChild(spodnja);
+    elCrtice.push(spodnja);
   }
 
   elMreza.appendChild(okvir);
@@ -671,8 +688,8 @@ function osveziTrak(){
     if (je) g.querySelector('b').textContent =
       NABOR.dnevi[levo ? prviDan - 1 : prviDan + vidnihDni].kratica;
   }
-  if (elCrtica){
-    var i2 = elCrtica.querySelector('i');
+  for (var j = 0; j < elCrtice.length; j++){
+    var i2 = elCrtice[j].querySelector('i');
     i2.style.width = (vidnihDni / vseh * 100) + '%';
     i2.style.left  = (prviDan / vseh * 100) + '%';
   }
