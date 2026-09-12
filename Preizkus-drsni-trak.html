@@ -6,7 +6,7 @@
 <title>Preizkus — drseči trak</title>
 <style>
 /* ====================================================================
-   RAZLICICA-10SEP-TRAK3
+   RAZLICICA-12SEP-NAPRAVA
    Merilna stran za KORAK 7 (drseče polje). NI del aplikacije.
    Meri tri stvari, ki jih v namiznem brskalniku ni mogoče izmeriti:
    1. ali drsenje traku in poteg po poljih delujeta drug ob drugem
@@ -95,6 +95,12 @@ h1{font-size:17px;margin:14px 0 2px}
 <h1>Preizkus — drseči trak</h1>
 <div class="uvod">Trije poskusi. Vsak sam izmeri, kaj se je zgodilo, in izpiše izid. Nič se ne shranjuje.</div>
 
+<div class="poskus">
+  <div class="naslov">0 · Kaj sporoča vaš telefon</div>
+  <div class="navodilo">Te številke pove vaš telefon sam, ko se stran odpre. Po njih se ravna razporeditev stolpcev.</div>
+  <div class="izid" id="naprava"></div>
+</div>
+
 <!-- ================= POSKUS 1 ================= -->
 <div class="poskus">
   <div class="naslov">1 · Trak in poteg drug ob drugem</div>
@@ -164,7 +170,7 @@ h1{font-size:17px;margin:14px 0 2px}
   </table>
 </div>
 
-<div class="zig">RAZLICICA-10SEP-TRAK3</div>
+<div class="zig">RAZLICICA-12SEP-NAPRAVA</div>
 
 <script>
 /* ====================================================================
@@ -196,6 +202,26 @@ h1{font-size:17px;margin:14px 0 2px}
     zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
   }, { passive: false });
 })();
+
+/* ---------- kaj sporoca naprava ---------- */
+function izpisiNapravo(){
+  var el = document.getElementById('naprava'); if (!el) return;
+  var sirina = window.innerWidth;
+  var prostor = sirina - 24 - 2*47 - 2*7;      /* robova strani, dve uri, dva presledka */
+  var n = 1;
+  while ((n + 1) * 58 + n * 7 <= prostor) n++;
+  if (n > 7) n = 7;
+  var stolpec = (prostor - (n - 1) * 7) / n;
+  if (stolpec > 90) stolpec = 90;
+  el.innerHTML =
+    vrstica('Širina strani', sirina + ' pik', true) +
+    vrstica('Višina strani', window.innerHeight + ' pik', true) +
+    vrstica('Gostota zaslona', (window.devicePixelRatio || 1) + '×', true) +
+    vrstica('Zaslon naprave', screen.width + ' × ' + screen.height + ' pik', true) +
+    vrstica('Pri sedmih dneh bi aplikacija pokazala', n + ' stolpce po ' + Math.round(stolpec*10)/10 + ' pik', true);
+}
+window.addEventListener('resize', izpisiNapravo);
+window.addEventListener('orientationchange', function(){ setTimeout(izpisiNapravo, 300); });
 
 /* ---------- dnevnik dotikov ---------- */
 var DOTIKI = [];
@@ -514,6 +540,7 @@ naPritiskInKlik('p3r', 'por3', function(){
 });
 
 /* ---------- zacetno stanje ---------- */
+izpisiNapravo();
 ponastavi1(); ponastavi3();
 osveziCrtico(d1, 'crtica1'); osveziGumba(d1, 'g1L', 'g1D', 'g1Lime', 'g1Dime');
 osveziCrtico(d4, 'crtica4'); osveziGumba(d4, 'g3L', 'g3D', 'g3Lime', 'g3Dime');
