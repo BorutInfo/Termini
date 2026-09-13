@@ -24,8 +24,9 @@
    (stevilka 9 v dokumentu App_Termini_Vrstni red dela; merodajen je dokument)
 
    KORAK 10 izbira ure z nasim lastnim seznamom               (13. 9. 2026)
+   KORAK 10 popravki po preizkusu na iPhonu + zelja 2         (13. 9. 2026)
 
-   RAZLICICA-13SEP-SEZNAMUR
+   RAZLICICA-13SEP-OKVIR
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -253,7 +254,7 @@ body{
   font-weight:600;min-height:19px;margin:4px 0 9px;
 }
 
-.par{display:flex;gap:11px}
+.par{display:flex;gap:11px;position:relative}   /* KORAK10: nosilec seznama ur */
 /* obroba je prisotna VES CAS, samo barva se spremeni — tako se polji
    ob prizigu ne premakneta niti za piko */
 .polje-kolo{
@@ -280,11 +281,12 @@ body{
    Spodnji rob seznama je VEDNO nad poljema OD in DO, ne glede na stevilo
    vrstic (Borut, 13. 9. 2026). Zato je pribit s "bottom", ki ga izracuna
    koda, in raste navzgor. Vodoravno je na sredini zaslona. */
-.ure-senca{position:fixed;inset:0;z-index:21;background:transparent}
+.ure-senca{position:fixed;inset:0;z-index:1;background:transparent}
 .ure-senca[hidden]{display:none}
 .ure-okno{
-  position:fixed;left:50%;transform:translateX(-50%);z-index:22;
-  width:calc(100% - 24px);max-width:292px;
+  position:absolute;bottom:100%;margin-bottom:10px;
+  left:50%;transform:translateX(-50%);z-index:2;
+  width:100%;max-width:292px;
   display:flex;flex-direction:column;
   background:#fff;border:1px solid var(--crta);border-radius:12px;
   box-shadow:0 8px 26px rgba(0,0,0,.22);overflow:hidden;
@@ -297,7 +299,14 @@ body{
 }
 .ure-seznam{
   flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;touch-action:pan-y;
+  overscroll-behavior:contain;
+  /* pan-y = drsenje seznama gor in dol; pinch-zoom = scipanje z dvema prstoma
+     deluje tudi NA seznamu (Borut, 13. 9. 2026: seznam zasede vecino zaslona,
+     zato je ob njem premalo prostora za scipanje).
+     PREVERJENO na caniuse: Safari na iPhonu pozna vrednost pinch-zoom od
+     razlicice 13. Zascita proti povecavi izvzame vsak gib z vec kot enim
+     prstom, zato se s scipanjem ne srecata. */
+  touch-action:pan-y pinch-zoom;
   position:relative;   /* lega vrstice se meri od seznama, ne od okna nad njim */
 }
 .ura{
@@ -309,6 +318,11 @@ body{
 }
 .ura:last-child{border-bottom:none}
 .ura.izbrana{background:var(--prosto);color:#fff}
+/* ZELJA 2: pri popravku je ura DRUGEGA polja obarvana bledo zeleno,
+   da starс vidi, kje stoji drugi konec razpona */
+.ura.druga{background:var(--prosto-svetlo);color:var(--tekst)}
+/* ZELJA 2: crtica na vrhu izbrise uro */
+.ura.crtica{color:var(--sivo);background:#faf9f6}
 
 .zav-gumbi{display:flex;gap:9px;margin-top:14px}
 .zav-gumbi button{
@@ -348,7 +362,14 @@ body{
   <div class="zav-naslov" id="zavNaslov">Dodaj razpon</div>
   <div class="dnevi-izbira" id="izbiraDni"></div>
   <div class="opozorilo-dan" id="opozoriloDan"></div>
+  <!-- KORAK 10: nas lasten seznam ur. Stoji V ISTEM OKVIRJU kot polji OD in DO
+       in je nanju pripet z "dnom na vrh polj". Racunanja z visino zaslona ni. -->
+  <div class="ure-senca" id="ureSenca" hidden></div>
   <div class="par">
+    <div class="ure-okno" id="ureOkno" hidden>
+      <div class="ure-oznaka" id="ureOznaka">od</div>
+      <div class="ure-seznam" id="ureSeznam"></div>
+    </div>
     <div class="polje-kolo" id="okvirOd">
       <div class="oznaka">od</div>
       <select id="koloOd"></select>
@@ -362,13 +383,6 @@ body{
     <button class="preklic" id="gumbPreklic">Prekliči</button>
     <button class="potrdi-okno" id="gumbDodajPotrdi">Dodaj</button>
   </div>
-</div>
-
-<!-- KORAK 10: nas lasten seznam ur namesto sistemskega -->
-<div class="ure-senca" id="ureSenca" hidden></div>
-<div class="ure-okno" id="ureOkno" hidden>
-  <div class="ure-oznaka" id="ureOznaka">od</div>
-  <div class="ure-seznam" id="ureSeznam"></div>
 </div>
 
 <div class="obvestilo" id="obvestilo" hidden></div>
@@ -1045,7 +1059,27 @@ function napolniKolo(el, prva, zadnja, izbrana){
     o.value = m; o.textContent = vNapis(m);
     el.appendChild(o);
   }
+  /* KORAK10 popravek 13. 9. 2026: izbrana ura mora biti v seznamu VEDNO,
+     tudi ce pade izven omejitve. Prej je el.value tiho odpovedal in ura je
+     izginila - polje je pokazalo crtico, ceprav je bila ura izbrana.
+     Od zelje 2 naprej se to zgodi pri popravku, kjer sta seznama neomejena. */
+  if (izbrana !== null) poskrbiZaUro(el, izbrana);
   el.value = (izbrana === null) ? '' : String(izbrana);
+}
+
+/* Poskrbi, da ura V SEZNAMU POLJA obstaja. Brez tega el.value tiho odpove
+   in ura izgine - polje pokaze crtico, ceprav jo je starс izbral.
+   IZMERJENO v brskalniku 13. 9. 2026: pri popravku, ko OD prestopi DO,
+   je bila ura 17.00 izbrana, polje pa je pokazalo crtico. */
+function poskrbiZaUro(el, m){
+  if (el.querySelector('option[value="' + m + '"]')) return;
+  var o = document.createElement('option');
+  o.value = m; o.textContent = vNapis(m);
+  var kam = null;                       /* vstavimo jo na pravo mesto po vrsti */
+  for (var i = 0; i < el.options.length; i++){
+    if (el.options[i].value !== '' && +el.options[i].value > m){ kam = el.options[i]; break; }
+  }
+  el.insertBefore(o, kam);
 }
 
 /* KORAK6: ker sme biti izpolnjeno katerokoli polje prvo, se kolesci
@@ -1077,8 +1111,14 @@ function osveziStanjeOkna(){
      ce stars uro vrne na staro, gumb spet zbledi (Borut, 7. 9. 2026) */
   var spremenjeno = !vPopravku ||
                     (+elOd.value !== staraOd) || (+elDo.value !== staraDo);
+  /* ZELJA 2 (13. 9. 2026): pri popravku seznama nista vec omejena drug z
+     drugim, zato je mogoce sestaviti razpon, ki ne tece naprej (OD >= DO).
+     Gumb takrat ostane bled, tako kot ostane bled pri praznem polju. */
+  var vOd = vrednost(elOd), vDo = vrednost(elDo);
+  var razponTece = (vOd !== null && vDo !== null && vOd < vDo);
   elDodajPotrdi.classList.toggle('pripravljen',
-                                 odIzpolnjen && doIzpolnjen && spremenjeno);
+                                 danIzbran && odIzpolnjen && doIzpolnjen &&
+                                 razponTece && spremenjeno);
 }
 
 function obvestiloDan(pokazi){
@@ -1188,30 +1228,69 @@ var pritisnjena = null, pritisnjenX = 0, pritisnjenY = 0;
 
 function poljeUr(kdo){ return kdo === 'od' ? elOd : elDo; }
 
-/* spodnji rob seznama je vedno nad poljema OD in DO */
+/* LEGA SEZNAMA — popravek 13. 9. 2026 po Borutovi meritvi na iPhonu.
+   Seznam je prej vcasih pristal prenizko in pokril gumba OD in DO. Prva
+   resitev je bila moja lastna zamisel: lego izracunati iz visine zaslona.
+   To je bilo napacno izhodisce.
+   UHOJENA POT, ki je izbrana zdaj: seznam stoji V ISTEM OKVIRJU kot polji
+   OD in DO in je nanju pripet s CSS ("bottom: 100%"). Brskalnik ju drzi
+   skupaj sam, zato racunanja z zasloni sploh ni vec.
+   Zavrzeni poti: VisualViewport (MDN) je za stvari, pribite na zaslon, ne
+   na polje, in je precej vec kode; CSS sidranje je uradna pot za tak
+   primer, a je Safari na iPhonu po caniuse nima polno podprte.
+   Ostane ena sama meritev: najvecja visina, da seznam ne uide cez vrh. */
 function postaviSeznamUr(){
   if (elUreOkno.hidden) return;
-  var spodaj = elPar.getBoundingClientRect().top - 10;
-  elUreOkno.style.bottom    = (window.innerHeight - spodaj) + 'px';
-  elUreOkno.style.maxHeight = Math.max(88, spodaj - 12) + 'px';
+  elUreOkno.style.maxHeight = Math.max(88, elPar.getBoundingClientRect().top - 22) + 'px';
 }
 
+/* ena vrstica seznama */
+function vrsticaSeznama(besedilo, razred, min){
+  var v = document.createElement('button');
+  v.type = 'button';
+  v.className = 'ura' + (razred ? ' ' + razred : '');
+  v.textContent = besedilo;
+  if (min !== null) v.dataset.min = min;
+  elUreSeznam.appendChild(v);
+  return v;
+}
+
+/* ====================================================================
+   ZELJA 2 iz App_Termini_Zelje (Borut, 13. 9. 2026) — velja SAMO pri
+   popravku ze izpolnjenega termina. Pri prvem izpolnjevanju ostane vse
+   tako, kot je danes; Borut je to izrecno zapisal.
+
+   1. Seznam ponudi VSE ure dneva, od zacetka do konca delovnika, in ne
+      vec samo tistih do druge ure. Primer: dan 13.00-16.00, termin
+      14.00-15.00 - OD in DO oba ponudita vse od 13.00 do 16.00.
+   2. V seznamu sta obarvani DVE uri: ura tega polja v zeleni, ura
+      drugega polja v bledi zeleni. Tako starс vidi, kje stoji drugi konec.
+   3. Na vrhu je crtica, s katero se ura izbrise. Brez nje ure ni mogoce
+      odstraniti.
+   ==================================================================== */
 function odpriSeznamUr(kdo){
   var el = poljeUr(kdo);
   var izbrana = vrednost(el), izbranaEl = null;
+  var druga   = vrednost(kdo === 'od' ? elDo : elOd);
 
   elUreSeznam.innerHTML = '';
-  for (var i = 0; i < el.options.length; i++){
-    var v = el.options[i].value;
-    if (v === '') continue;                    /* crtica ni ura */
-    var m = +v;
-    var vrstica = document.createElement('button');
-    vrstica.type = 'button';
-    vrstica.className = 'ura' + (m === izbrana ? ' izbrana' : '');
-    vrstica.textContent = vNapis(m);
-    vrstica.dataset.min = m;
-    if (m === izbrana) izbranaEl = vrstica;
-    elUreSeznam.appendChild(vrstica);
+
+  if (vPopravku){
+    var d = NABOR.dnevi[izbraniDan];
+    vrsticaSeznama(PRAZNO, 'crtica', null);        /* izbris ure */
+    for (var m = vMinute(d.od); m <= vMinute(d.do); m += KORAK){
+      var razred = (m === izbrana) ? 'izbrana' : (m === druga ? 'druga' : '');
+      var vr = vrsticaSeznama(vNapis(m), razred, m);
+      if (m === izbrana) izbranaEl = vr;
+    }
+  } else {
+    for (var i = 0; i < el.options.length; i++){
+      var v = el.options[i].value;
+      if (v === '') continue;                      /* crtica ni ura */
+      var mm = +v;
+      var vr2 = vrsticaSeznama(vNapis(mm), (mm === izbrana ? 'izbrana' : ''), mm);
+      if (mm === izbrana) izbranaEl = vr2;
+    }
   }
   if (!elUreSeznam.children.length) return;    /* varovalka; ne sme se zgoditi */
 
@@ -1240,12 +1319,27 @@ function zapriSeznamUr(){
 function izberiUro(m){
   var kdo = odprtoPolje;
   if (!kdo) return;
+
+  /* ZELJA 2, tocka 3: crtica izbrise uro. Polje ostane prazno in TO polje
+     spet caka na vnos, zato obrobo obdrzi. Gumb Shrani ostane bled. */
+  if (m === null){
+    zapriSeznamUr();
+    caka = kdo;
+    napolniKolesci(kdo === 'od' ? null : vrednost(elOd),
+                   kdo === 'do' ? null : vrednost(elDo));
+    osveziStanjeOkna();
+    return;
+  }
+
+  poskrbiZaUro(poljeUr(kdo), m);   /* sele nato sme vpis uspeti */
   poljeUr(kdo).value = String(m);
   zapriSeznamUr();
   poIzbiriUre(kdo);          /* ista pot kot doslej pri sistemskem polju */
 }
 
 function vrsticaUre(cilj){ return cilj && cilj.closest ? cilj.closest('.ura') : null; }
+/* crtica nima ure; vrne null, kar pomeni "izbrisi uro" */
+function uraVrstice(v){ return v.dataset.min === undefined ? null : +v.dataset.min; }
 
 elUreSeznam.addEventListener('pointerdown', function(e){
   pritisnjena = vrsticaUre(e.target);
@@ -1257,7 +1351,7 @@ elUreSeznam.addEventListener('pointerup', function(e){
   var mirno = Math.sqrt(dx*dx + dy*dy) < PRAG_PREMIK;
   var bila = pritisnjena;
   pritisnjena = null;
-  if (v && v === bila && mirno) izberiUro(+v.dataset.min);
+  if (v && v === bila && mirno) izberiUro(uraVrstice(v));
 });
 elUreSeznam.addEventListener('pointercancel', function(){ pritisnjena = null; });
 
@@ -1267,7 +1361,7 @@ elUreSeznam.addEventListener('keydown', function(e){
   var v = vrsticaUre(e.target);
   if (!v) return;
   e.preventDefault();
-  izberiUro(+v.dataset.min);
+  izberiUro(uraVrstice(v));
 });
 
 /* dotik zunaj seznama zapre SAMO seznam, ne celega okna */
