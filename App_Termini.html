@@ -26,7 +26,7 @@
    KORAK 10 izbira ure z nasim lastnim seznamom               (13. 9. 2026)
    KORAK 10 popravki po preizkusu na iPhonu + zelja 2         (13. 9. 2026)
 
-   RAZLICICA-13SEP-OKVIR
+   RAZLICICA-13SEP-NAZAJ
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -254,7 +254,7 @@ body{
   font-weight:600;min-height:19px;margin:4px 0 9px;
 }
 
-.par{display:flex;gap:11px;position:relative}   /* KORAK10: nosilec seznama ur */
+.par{display:flex;gap:11px}
 /* obroba je prisotna VES CAS, samo barva se spremeni — tako se polji
    ob prizigu ne premakneta niti za piko */
 .polje-kolo{
@@ -281,12 +281,11 @@ body{
    Spodnji rob seznama je VEDNO nad poljema OD in DO, ne glede na stevilo
    vrstic (Borut, 13. 9. 2026). Zato je pribit s "bottom", ki ga izracuna
    koda, in raste navzgor. Vodoravno je na sredini zaslona. */
-.ure-senca{position:fixed;inset:0;z-index:1;background:transparent}
+.ure-senca{position:fixed;inset:0;z-index:21;background:transparent}
 .ure-senca[hidden]{display:none}
 .ure-okno{
-  position:absolute;bottom:100%;margin-bottom:10px;
-  left:50%;transform:translateX(-50%);z-index:2;
-  width:100%;max-width:292px;
+  position:fixed;left:50%;transform:translateX(-50%);z-index:22;
+  width:calc(100% - 24px);max-width:292px;
   display:flex;flex-direction:column;
   background:#fff;border:1px solid var(--crta);border-radius:12px;
   box-shadow:0 8px 26px rgba(0,0,0,.22);overflow:hidden;
@@ -362,14 +361,7 @@ body{
   <div class="zav-naslov" id="zavNaslov">Dodaj razpon</div>
   <div class="dnevi-izbira" id="izbiraDni"></div>
   <div class="opozorilo-dan" id="opozoriloDan"></div>
-  <!-- KORAK 10: nas lasten seznam ur. Stoji V ISTEM OKVIRJU kot polji OD in DO
-       in je nanju pripet z "dnom na vrh polj". Racunanja z visino zaslona ni. -->
-  <div class="ure-senca" id="ureSenca" hidden></div>
   <div class="par">
-    <div class="ure-okno" id="ureOkno" hidden>
-      <div class="ure-oznaka" id="ureOznaka">od</div>
-      <div class="ure-seznam" id="ureSeznam"></div>
-    </div>
     <div class="polje-kolo" id="okvirOd">
       <div class="oznaka">od</div>
       <select id="koloOd"></select>
@@ -383,6 +375,16 @@ body{
     <button class="preklic" id="gumbPreklic">Prekliči</button>
     <button class="potrdi-okno" id="gumbDodajPotrdi">Dodaj</button>
   </div>
+</div>
+
+<!-- KORAK 10: nas lasten seznam ur. Stoji na ravni strani, ne v oknu.
+     IZMERJENO na Borutovem iPhonu 13. 9. 2026: ko je stal v istem okvirju kot
+     polji, se je v Preizkus-7-dni.html seznam ob dotiku ure samo zaprl in ure
+     ni vpisal. Zakaj, ni znano - to bi razresila merilna stran. -->
+<div class="ure-senca" id="ureSenca" hidden></div>
+<div class="ure-okno" id="ureOkno" hidden>
+  <div class="ure-oznaka" id="ureOznaka">od</div>
+  <div class="ure-seznam" id="ureSeznam"></div>
 </div>
 
 <div class="obvestilo" id="obvestilo" hidden></div>
@@ -1228,20 +1230,32 @@ var pritisnjena = null, pritisnjenX = 0, pritisnjenY = 0;
 
 function poljeUr(kdo){ return kdo === 'od' ? elOd : elDo; }
 
-/* LEGA SEZNAMA — popravek 13. 9. 2026 po Borutovi meritvi na iPhonu.
-   Seznam je prej vcasih pristal prenizko in pokril gumba OD in DO. Prva
-   resitev je bila moja lastna zamisel: lego izracunati iz visine zaslona.
-   To je bilo napacno izhodisce.
-   UHOJENA POT, ki je izbrana zdaj: seznam stoji V ISTEM OKVIRJU kot polji
-   OD in DO in je nanju pripet s CSS ("bottom: 100%"). Brskalnik ju drzi
-   skupaj sam, zato racunanja z zasloni sploh ni vec.
-   Zavrzeni poti: VisualViewport (MDN) je za stvari, pribite na zaslon, ne
-   na polje, in je precej vec kode; CSS sidranje je uradna pot za tak
-   primer, a je Safari na iPhonu po caniuse nima polno podprte.
-   Ostane ena sama meritev: najvecja visina, da seznam ne uide cez vrh. */
+/* LEGA SEZNAMA — spodnji rob je vedno nad poljema OD in DO.
+
+   UHOJENA POT je bila preizkusena in NE DELUJE pri nas. Seznam je stal v
+   istem okvirju kot polji in bil nanju pripet s CSS ("bottom: 100%"), kar
+   je obicajen nacin za spustna okna. IZMERJENO na Borutovem iPhonu
+   13. 9. 2026: v Preizkus-7-dni.html se je seznam ob dotiku ure samo zaprl
+   in ure ni vpisal, pri OD in pri DO. V App_Termini.html je delovalo. Edina
+   razlika med datotekama je drseci trak, ki ima svoj drsni okvir
+   ("-webkit-overflow-scrolling: touch" in svoj z-index). ZAKAJ to podre
+   dotik v oknu, NI ZNANO in ni dokazano - razresila bi merilna stran.
+
+   Zato je vklopljena moja lastna resitev, in sicer po pravilu, ki jo
+   dovoljuje: meritev je pokazala, da uhojena pot pri nas ne deluje.
+   Seznam je pribit na stran ("position: fixed"). Ker telefon pribite stvari
+   meri po drugem okvirju kot getBoundingClientRect (DOKUMENTACIJA MDN o
+   dveh zaslonih), lege ne racunamo iz visine zaslona: seznam najprej
+   postavimo na top:0 in IZMERIMO, kje je pristal, nato izracunamo pravi top.
+   Deluje ne glede na to, kateri okvir telefon vzame. */
 function postaviSeznamUr(){
   if (elUreOkno.hidden) return;
-  elUreOkno.style.maxHeight = Math.max(88, elPar.getBoundingClientRect().top - 22) + 'px';
+  var ciljSpodaj = elPar.getBoundingClientRect().top - 10;   /* kam sme segati */
+  elUreOkno.style.maxHeight = Math.max(88, ciljSpodaj - 12) + 'px';
+  elUreOkno.style.bottom = 'auto';
+  elUreOkno.style.top    = '0px';
+  var mera   = elUreOkno.getBoundingClientRect();
+  elUreOkno.style.top = (ciljSpodaj - mera.height - mera.top) + 'px';
 }
 
 /* ena vrstica seznama */
