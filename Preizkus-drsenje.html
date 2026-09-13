@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Preizkus drsenja pod seznamom ur</title>
+<style>
+/* ====================================================================
+   MERILNA STRAN — drsenje strani pod odprtim seznamom ur
+   Po Pravilu 20. NI del aplikacije.
+
+   RAZLICICA-13SEP-DRSENJE
+
+   Kaj meri: ko je odprt seznam ur, ki NIMA kaj drsati (vse vrstice gredo
+   na zaslon), se na Borutovem iPhonu namesto seznama premakne stran za
+   njim. V brskalniku na racunalniku se to ne zgodi.
+
+   Vsako polje preizkusi eno uhojeno pot. Pot 1 je KONTROLA - to je koda,
+   ki je danes v aplikaciji in za katero je ze izmerjeno, da ne drzi. Brez
+   nje meritev nima primerjave: ce se tudi pri njej stran ne premakne, ta
+   stran ni izmerila nicesar.
+   ==================================================================== */
+:root{
+  --papir:#f4f3ef; --bel:#fff; --crta:#d9d6cd; --tekst:#1c1c1a;
+  --sivo:#78756c; --prosto:#3f7d58; --prosto-svetlo:#d6ead9;
+  --opozorilo:#a8342a; --tirnica:#e6e3da;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papir);color:var(--tekst);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 12px 340px;      /* spodaj prostor, da je stran zagotovo daljsa od zaslona */
+  overscroll-behavior:none;  /* enako kot v aplikaciji */
+}
+h1{font-size:19px;margin:14px 0 4px}
+h2{font-size:15px;margin:22px 0 6px}
+p.pod{color:var(--sivo);font-size:13.5px;margin:0 0 12px}
+
+/* ---------- izidi ---------- */
+.kartica{background:#fff;border:1px solid var(--crta);border-radius:10px;
+         padding:9px 11px;margin:0 0 8px;font-size:13px}
+.kartica .naslov{font-weight:700;margin-bottom:4px}
+.kartica .glavno{font-weight:700;font-size:14px}
+.kartica .glavno.dobro{color:var(--prosto)}
+.kartica .glavno.slabo{color:var(--opozorilo)}
+.kartica .drobno{color:var(--sivo);font-size:12.5px;margin-top:3px}
+.kartica .drobno b{color:var(--opozorilo)}
+.prazno{color:var(--sivo);font-style:italic}
+
+/* ---------- gumbi poti ---------- */
+.pot{
+  display:block;width:100%;text-align:left;margin:0 0 8px;
+  background:#fff;border:2px solid var(--crta);border-radius:10px;
+  padding:11px 12px;font-family:inherit;font-size:15px;color:var(--tekst);
+  cursor:pointer;
+}
+.pot.narejeno{border-color:var(--prosto);background:var(--prosto-svetlo)}
+.pot b{display:block;font-size:15px}
+.pot span{display:block;font-size:12.5px;color:var(--sivo);margin-top:2px}
+.ukaz{background:#fff;border:1px solid var(--crta);border-radius:9px;
+      padding:10px 12px;font-size:13.5px;margin:0 0 14px}
+.ukaz b{color:var(--opozorilo)}
+button.navaden{
+  background:var(--prosto);border:none;color:#fff;border-radius:9px;
+  padding:11px 16px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;
+}
+button.bel{background:#fff;border:1px solid var(--crta);color:var(--sivo)}
+
+/* ---------- polnilo, da se stran da drsati ---------- */
+.polnilo{margin-top:16px}
+.polnilo div{height:20px;border-bottom:1px solid var(--crta);
+             color:#c9c6bd;font-size:11px;padding-left:4px}
+
+/* ---------- posnemek okna iz aplikacije ---------- */
+.zavesa{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:#f2f1ec;border-top:1px solid var(--crta);
+  border-radius:16px 16px 0 0;box-shadow:0 -6px 22px rgba(0,0,0,.16);
+  padding:14px 14px calc(16px + env(safe-area-inset-bottom));
+  max-width:560px;margin:0 auto;
+}
+.zavesa[hidden]{display:none}
+.zav-naslov{font-size:16.5px;font-weight:700;text-align:center;margin-bottom:11px}
+.par{display:flex;gap:11px}
+.polje-kolo{flex:1;background:#fff;border:2px solid var(--prosto);border-radius:10px;
+            padding:8px;text-align:center}
+.polje-kolo .oznaka{font-size:13px;text-transform:uppercase;letter-spacing:1px;
+                    color:var(--sivo);margin-bottom:5px}
+.polje-kolo .ura{font-size:19px;font-weight:700}
+.zav-gumbi{display:flex;gap:9px;margin-top:14px}
+.zav-gumbi button{flex:1;padding:12px;border-radius:9px;font-weight:700;font-size:15px;
+                  font-family:inherit;cursor:pointer}
+
+/* ---------- seznam ur ---------- */
+.ure-okno{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:22;
+  width:calc(100% - 24px);max-width:292px;
+  display:flex;flex-direction:column;
+  background:#fff;border:1px solid var(--crta);border-radius:12px;
+  box-shadow:0 8px 26px rgba(0,0,0,.22);overflow:hidden;
+}
+.ure-okno[hidden]{display:none}
+.ure-oznaka{flex:0 0 auto;background:#faf9f6;border-bottom:1px solid var(--crta);
+            font-size:13px;text-transform:uppercase;letter-spacing:1px;
+            color:var(--sivo);text-align:center;padding:8px 0 7px}
+.ure-seznam{flex:1 1 auto;min-height:0;overflow-y:auto;position:relative}
+.vrstica-ure{
+  display:block;width:100%;height:44px;padding:0;
+  border:none;border-bottom:1px solid var(--crta);background:#fff;color:var(--tekst);
+  font-family:inherit;font-size:19px;font-weight:700;line-height:44px;
+  text-align:center;cursor:pointer;
+}
+.vrstica-ure:last-child{border-bottom:none}
+
+/* sistemsko okno brskalnika */
+dialog.sistem{border:none;padding:0;background:transparent;max-width:none;max-height:none}
+dialog.sistem::backdrop{background:transparent}
+dialog.sistem .ure-okno{position:fixed}
+.koncaj-v-oknu{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:23;
+               width:calc(100% - 24px);max-width:292px;padding:13px}
+
+/* ---------- koda ---------- */
+pre{background:#fff;border:1px solid var(--crta);border-radius:9px;
+    padding:10px;font-size:11.5px;line-height:1.45;overflow-x:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<h1>Merilna stran — drsenje pod seznamom ur</h1>
+<p class="pod">RAZLICICA-13SEP-DRSENJE &middot; ni del aplikacije</p>
+
+<div class="ukaz">
+  <b>Postopek za vsako pot:</b><br>
+  1. Kliknite gumb poti. Odpre se seznam s štirimi urami — teh nima kaj drsati.<br>
+  2. S prstom <b>povlecite gor in dol po seznamu</b>, tako kot bi ga hoteli premakniti.<br>
+  3. Kliknite <b>Končaj</b>. Vrstica v razpredelnici se sama izpolni.<br>
+  4. Če želite, med korakom 2 tudi ščipnite z dvema prstoma — izpiše se, ali povečava deluje.
+</div>
+
+<h2>Izidi</h2>
+<div id="telo"><p class="prazno">Še ni nobene meritve.</p></div>
+<p style="margin:10px 0 0"><button class="navaden bel" id="gumbPonastavi">Ponastavi izide</button></p>
+
+<h2>Poti</h2>
+<div id="gumbiPoti"></div>
+
+<div class="polnilo" id="polnilo"></div>
+
+<h2>Koda posamezne poti</h2>
+<div id="kode"></div>
+
+<!-- posnemek okna Dodaj razpon iz aplikacije -->
+<div class="zavesa" id="zavesa" hidden>
+  <div class="zav-naslov" id="zavNaslov">Dodaj razpon</div>
+  <div class="par">
+    <div class="polje-kolo"><div class="oznaka">od</div><div class="ura">13.00</div></div>
+    <div class="polje-kolo"><div class="oznaka">do</div><div class="ura">13.45</div></div>
+  </div>
+  <div class="zav-gumbi">
+    <button class="navaden bel" id="gumbKoncaj">Končaj</button>
+  </div>
+</div>
+
+<!-- na merilni strani prosojne sence ni: seznam odpre in zapre gumb, senca
+     pa bi le zakrivala gumb Koncaj. Za meritev poteg PO SEZNAMU ni pomembna. -->
+<div class="ure-okno" id="ureOkno" hidden>
+  <div class="ure-oznaka" id="ureOznaka">od</div>
+  <div class="ure-seznam" id="ureSeznam"></div>
+</div>
+
+<dialog class="sistem" id="sistemOkno">
+  <div class="ure-okno" id="ureOkno2">
+    <div class="ure-oznaka">od</div>
+    <div class="ure-seznam" id="ureSeznam2"></div>
+  </div>
+  <!-- modalno okno naredi vse zunaj sebe nedosegljivo, zato ima svoj gumb -->
+  <button type="button" class="navaden koncaj-v-oknu" id="gumbKoncaj2">Končaj</button>
+</dialog>
+
+<script>
+/* ====================================================================
+   ZASCITA PROTI POVECAVI — prepisana iz aplikacije, da so pogoji enaki
+   ==================================================================== */
+(function(){
+  var PRAG_CAS = 350, PRAG_PIK = 40;
+  var zadnjiCas = 0, zadnjiX = 0, zadnjiY = 0, vecPrstov = false;
+  document.addEventListener('touchstart', function(e){
+    if (e.touches && e.touches.length > 1) vecPrstov = true;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e){
+    var koncano = !e.touches || e.touches.length === 0;
+    if (vecPrstov){ if (koncano){ vecPrstov = false; zadnjiCas = 0; } return; }
+    if (!koncano) return;
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    var t = e.changedTouches[0], zdaj = Date.now();
+    var dx = t.clientX - zadnjiX, dy = t.clientY - zadnjiY;
+    if (zdaj - zadnjiCas < PRAG_CAS && Math.sqrt(dx*dx+dy*dy) < PRAG_PIK){
+      if (e.cancelable) e.preventDefault();
+    }
+    zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
+  }, { passive: false });
+})();
+
+/* ====================================================================
+   POTI. Vsaka pove, kako pripravi seznam in kaj pospravi za sabo.
+   Koda ob vsaki poti je natanko tista, ki bi sla v aplikacijo.
+   ==================================================================== */
+var POTI = [
+{
+  ime: 'Kot danes (KONTROLA)',
+  opis: 'Prepoved verige in stara vrstica za drsenje. To je današnja koda.',
+  koda: ".ure-seznam{\n  overflow-y:auto;\n  overscroll-behavior:contain;\n  -webkit-overflow-scrolling:touch;\n  touch-action:pan-y pinch-zoom;\n}",
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = 'touch';
+    s.style.touchAction = 'pan-y pinch-zoom';
+  }
+},
+{
+  ime: 'Brez stare vrstice',
+  opis: 'Isto kot danes, a brez -webkit-overflow-scrolling. Ta vrstica je iz časov pred prepovedjo verige.',
+  koda: ".ure-seznam{\n  overflow-y:auto;\n  overscroll-behavior:contain;\n  touch-action:pan-y pinch-zoom;\n}",
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = '';
+    s.style.touchAction = 'pan-y pinch-zoom';
+  }
+},
+{
+  ime: 'Brez pan-y, ko ni kaj drsati',
+  opis: 'Ko vse vrstice gredo na zaslon, seznamu vzamemo dovoljenje za drsenje. Ščipanje ostane.',
+  koda: "/* v kodi, ko se seznam odpre: */\nvar seDaDrsati = seznam.scrollHeight > seznam.clientHeight;\nseznam.style.touchAction = seDaDrsati\n  ? 'pan-y pinch-zoom'\n  : 'pinch-zoom';",
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = 'touch';
+    var seDa = s.scrollHeight > s.clientHeight;
+    s.style.touchAction = seDa ? 'pan-y pinch-zoom' : 'pinch-zoom';
+  }
+},
+{
+  ime: 'Prestrezanje potega s kodo',
+  opis: 'Ko seznam nima kaj drsati, poteg po njem zavrnemo. Gib z več prsti je izvzet, da ščipanje ostane.',
+  koda: "seznam.addEventListener('touchmove', function(e){\n  if (e.touches.length > 1) return;          /* scipanje pustimo */\n  if (seznam.scrollHeight <= seznam.clientHeight){\n    if (e.cancelable) e.preventDefault();\n  }\n}, { passive: false });",
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = 'touch';
+    s.style.touchAction = 'pan-y pinch-zoom';
+    s.__prestrezi = function(e){
+      if (e.touches && e.touches.length > 1) return;
+      if (s.scrollHeight <= s.clientHeight){ if (e.cancelable) e.preventDefault(); }
+    };
+    s.addEventListener('touchmove', s.__prestrezi, { passive:false });
+  },
+  pospravi: function(s){
+    if (s.__prestrezi){ s.removeEventListener('touchmove', s.__prestrezi, { passive:false }); s.__prestrezi = null; }
+  }
+},
+{
+  ime: 'Zaklep strani',
+  opis: 'Dokler je seznam odprt, se cela stran zaklene. Njena lega se zapomni in po zaprtju vrne.',
+  koda: "/* ob odprtju seznama: */\nvar lega = window.scrollY;\ndocument.body.style.position = 'fixed';\ndocument.body.style.top    = (-lega) + 'px';\ndocument.body.style.left   = '0';\ndocument.body.style.right  = '0';\n\n/* ob zaprtju: */\ndocument.body.style.position = '';\ndocument.body.style.top = '';\ndocument.body.style.left = '';\ndocument.body.style.right = '';\nwindow.scrollTo(0, lega);",
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = 'touch';
+    s.style.touchAction = 'pan-y pinch-zoom';
+    zaklepLega = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top   = (-zaklepLega) + 'px';
+    document.body.style.left  = '0';
+    document.body.style.right = '0';
+  },
+  pospravi: function(){
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    var prej = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, zaklepLega);
+    document.documentElement.style.scrollBehavior = prej;
+  }
+},
+{
+  ime: 'Sistemsko okno brskalnika',
+  opis: 'Seznam je v brskalnikovem lastnem oknu (dialog + showModal). Za plast nad stranjo poskrbi brskalnik sam.',
+  koda: "<dialog id=\"sistemOkno\">\n  ... seznam ur ...\n</dialog>\n\n/* ob odprtju: */\ndocument.getElementById('sistemOkno').showModal();\n/* ob zaprtju: */\ndocument.getElementById('sistemOkno').close();",
+  sistemsko: true,
+  pripravi: function(s){
+    s.style.overscrollBehavior = 'contain';
+    s.style.webkitOverflowScrolling = 'touch';
+    s.style.touchAction = 'pan-y pinch-zoom';
+  }
+}
+];
+
+var URE = ['13.00','13.15','13.30','13.45'];   /* stiri vrstice = ni kaj drsati */
+var zaklepLega = 0;
+
+var elZavesa = document.getElementById('zavesa');
+var elOkno   = document.getElementById('ureOkno');
+var elSeznam = document.getElementById('ureSeznam');
+var elOkno2  = document.getElementById('ureOkno2');
+var elSeznam2= document.getElementById('ureSeznam2');
+var elSistem = document.getElementById('sistemOkno');
+var elTelo   = document.getElementById('telo');
+
+var tekoca = null, meraZac = null, ozadjePred = 0, seznamVDelu = null;
+var izidi = [];
+
+/* polnilo, da je stran daljsa od zaslona */
+(function(){
+  var p = document.getElementById('polnilo'), h = '';
+  for (var i = 1; i <= 60; i++) h += '<div>vrstica ozadja ' + i + '</div>';
+  p.innerHTML = h;
+})();
+
+/* merilo, ali se je OZADJE premaknilo: lega znamke na strani.
+   Deluje tudi pri zaklepu strani, kjer window.scrollY ni uporaben. */
+function legaOzadja(){
+  var z = document.getElementById('polnilo');
+  return z.getBoundingClientRect().top;
+}
+function povecava(){
+  return (window.visualViewport && window.visualViewport.scale) || 1;
+}
+
+function napolniSeznam(el){
+  el.innerHTML = '';
+  URE.forEach(function(u){
+    var v = document.createElement('button');
+    v.type = 'button'; v.className = 'vrstica-ure'; v.textContent = u;
+    el.appendChild(v);
+  });
+}
+
+function odpri(i){
+  if (tekoca !== null) return;
+  tekoca = i;
+  var pot = POTI[i];
+  ozadjePred = legaOzadja();      /* lega ozadja SE PRED odprtjem */
+  elZavesa.hidden = false;
+
+  if (pot.sistemsko){
+    napolniSeznam(elSeznam2);
+    seznamVDelu = elSeznam2;
+    elSistem.showModal();
+    postavi(elOkno2);
+  } else {
+    napolniSeznam(elSeznam);
+    seznamVDelu = elSeznam;
+    elOkno.hidden  = false;
+    postavi(elOkno);
+  }
+  pot.pripravi(seznamVDelu);
+
+  meraZac = {
+    ozadje: legaOzadja(),
+    scrollY: window.scrollY,
+    scrollTop: seznamVDelu.scrollTop,
+    povecava: povecava()
+  };
+}
+
+/* seznam nad polji OD in DO, enako kot v aplikaciji */
+function postavi(okno){
+  var par = document.querySelector('.par').getBoundingClientRect();
+  var ciljSpodaj = par.top - 10;
+  okno.style.maxHeight = Math.max(88, ciljSpodaj - 12) + 'px';
+  okno.style.bottom = 'auto';
+  okno.style.top = '0px';
+  var m = okno.getBoundingClientRect();
+  okno.style.top = (ciljSpodaj - m.height - m.top) + 'px';
+}
+
+function koncaj(){
+  if (tekoca === null) return;
+  var pot = POTI[tekoca], i = tekoca;
+  var mera = {
+    ozadje: legaOzadja(),
+    scrollTop: seznamVDelu.scrollTop,
+    povecava: povecava()
+  };
+  var medPotegom  = Math.round(mera.ozadje - meraZac.ozadje);
+  var obOdprtju   = Math.round(meraZac.ozadje - ozadjePred);
+  var premikSez   = mera.scrollTop - meraZac.scrollTop;
+  var scipanje    = Math.abs(mera.povecava - meraZac.povecava) > 0.02;
+  var povec       = mera.povecava;
+
+  if (pot.pospravi) pot.pospravi(seznamVDelu);
+  if (pot.sistemsko && elSistem.open) elSistem.close();
+  elOkno.hidden = true; elZavesa.hidden = true;
+  elSeznam.innerHTML = ''; elSeznam2.innerHTML = '';
+  tekoca = null; seznamVDelu = null;
+
+  /* po zaprtju pocakamo, da se stran umiri, in sele nato izmerimo vrnitev */
+  setTimeout(function(){
+    izidi.push({
+      ime: pot.ime,
+      medPotegom: medPotegom,
+      obOdprtju: obOdprtju,
+      poZaprtju: Math.round(legaOzadja() - ozadjePred),
+      premikSez: premikSez,
+      scipanje: scipanje,
+      povecava: povec
+    });
+    narisiIzide();
+    document.querySelectorAll('.pot')[i].classList.add('narejeno');
+  }, 260);
+}
+
+function narisiIzide(){
+  if (!izidi.length){
+    elTelo.innerHTML = '<p class="prazno">Še ni nobene meritve.</p>';
+    return;
+  }
+  elTelo.innerHTML = '';
+  izidi.forEach(function(r){
+    var miruje = Math.abs(r.medPotegom) < 2;
+    var k = document.createElement('div');
+    k.className = 'kartica';
+    function pik(n){ return (Math.abs(n) < 2) ? '0' : '<b>' + n + ' pik</b>'; }
+    k.innerHTML =
+      '<div class="naslov">' + r.ime + '</div>' +
+      '<div class="glavno ' + (miruje ? 'dobro' : 'slabo') + '">med potegom: ' +
+        (miruje ? 'ozadje MIRUJE' : 'ozadje SE PREMAKNE za ' + r.medPotegom + ' pik') + '</div>' +
+      '<div class="drobno">ob odprtju skok: ' + pik(r.obOdprtju) +
+        ' &middot; po zaprtju zamik: ' + pik(r.poZaprtju) +
+        ' &middot; seznam: ' + (r.premikSez ? r.premikSez + ' pik' : 'miruje') +
+        ' &middot; ščipanje: ' + (r.scipanje ? 'DA (' + r.povecava.toFixed(2) + '×)' : 'ne') +
+      '</div>';
+    elTelo.appendChild(k);
+  });
+}
+
+/* gumbi poti in izpis kode */
+(function(){
+  var ovoj = document.getElementById('gumbiPoti');
+  var kode = document.getElementById('kode');
+  POTI.forEach(function(pot, i){
+    var g = document.createElement('button');
+    g.type = 'button'; g.className = 'pot';
+    g.innerHTML = '<b>' + (i+1) + '. ' + pot.ime + '</b><span>' + pot.opis + '</span>';
+    g.addEventListener('click', function(){ odpri(i); });
+    ovoj.appendChild(g);
+
+    var n = document.createElement('h2'); n.textContent = (i+1) + '. ' + pot.ime;
+    n.style.fontSize = '14px';
+    var p = document.createElement('pre'); p.textContent = pot.koda;
+    kode.appendChild(n); kode.appendChild(p);
+  });
+})();
+
+document.getElementById('gumbKoncaj').addEventListener('click', koncaj);
+document.getElementById('gumbKoncaj2').addEventListener('click', koncaj);
+document.getElementById('gumbPonastavi').addEventListener('click', function(){
+  izidi = []; narisiIzide();
+  var g = document.querySelectorAll('.pot');
+  for (var i = 0; i < g.length; i++) g[i].classList.remove('narejeno');
+});
+/* sistemsko okno: tipka Escape ga zapre sama, zato poberemo izid tudi tam */
+elSistem.addEventListener('close', function(){ if (tekoca !== null) koncaj(); });
+
+window.addEventListener('resize', function(){
+  if (tekoca === null) return;
+  postavi(POTI[tekoca].sistemsko ? elOkno2 : elOkno);
+});
+</script>
+</body>
+</html>
