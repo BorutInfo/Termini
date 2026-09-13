@@ -18,7 +18,14 @@
 
    KORAK 7 dodatka  dan pride na zaslon tudi navzgor/navzdol  (12. 9. 2026)
 
-   RAZLICICA-12SEP-PRIPELJI
+   Drsna crtica tudi v zgornjem traku                         (12. 9. 2026)
+
+   KORAK 8  dodelava zascite proti povecavi                   (12. 9. 2026)
+   (stevilka 9 v dokumentu App_Termini_Vrstni red dela; merodajen je dokument)
+
+   KORAK 10 izbira ure z nasim lastnim seznamom               (13. 9. 2026)
+
+   RAZLICICA-13SEP-SEZNAMUR
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -134,6 +141,9 @@ body{
 .mreza.drsi .stran{gap:5px}
 .mreza.drsi .dan{display:flex;flex-direction:column;gap:5px}
 .okvir{position:relative;min-width:0}
+.mreza.drsi .okvir{display:flex;flex-direction:column;gap:5px}
+/* razmik pri stranskem stolpcu, da gumba ostaneta v liniji traku */
+.mreza.drsi .razmik{height:3px}
 .okno{position:relative}
 .tirnica{position:absolute;left:0;right:0;height:32px;background:var(--tirnica);
          border-radius:9px;z-index:0}
@@ -156,8 +166,8 @@ body{
   font-size:12.5px;font-weight:700;letter-spacing:.5px;
   text-transform:uppercase;color:#3a382f;
 }
-/* drsna crtica pove, kje med dnevi ste */
-.crtica-pas{height:3px;background:#dcd9d0;border-radius:2px;margin-top:5px;position:relative}
+/* drsna crtica pove, kje med dnevi ste; je nad zgornjim in pod spodnjim trakom */
+.crtica-pas{height:3px;background:#dcd9d0;border-radius:2px;position:relative;flex:0 0 3px}
 .crtica-pas i{position:absolute;top:0;height:3px;background:var(--crtica);border-radius:2px}
 /* puscica JE gumb: ima obrobo in ozadje, puscica je visja od crk */
 .puscica{
@@ -260,8 +270,45 @@ body{
   border:none;background:none;font-family:inherit;color:var(--tekst);
   padding:5px 0;-webkit-appearance:none;appearance:none;text-align-last:center;
 }
-/* ugasnjeno polje: klik pade na okvir, ne na kolesce */
-.polje-kolo.ugasnjen select{pointer-events:none;color:#b4b1a8}
+/* KORAK10: sistemsko polje prsta ne sprejema vec NIKOLI. Ostane samo kot
+   zapis izbrane ure. Klik pade na okvir in odpre nas lasten seznam ur. */
+.polje-kolo select{pointer-events:none}
+/* ugasnjeno polje: ura je bleda */
+.polje-kolo.ugasnjen select{color:#b4b1a8}
+
+/* ---------- KORAK 10: nas lasten seznam ur ----------
+   Spodnji rob seznama je VEDNO nad poljema OD in DO, ne glede na stevilo
+   vrstic (Borut, 13. 9. 2026). Zato je pribit s "bottom", ki ga izracuna
+   koda, in raste navzgor. Vodoravno je na sredini zaslona. */
+.ure-senca{position:fixed;inset:0;z-index:21;background:transparent}
+.ure-senca[hidden]{display:none}
+.ure-okno{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:22;
+  width:calc(100% - 24px);max-width:292px;
+  display:flex;flex-direction:column;
+  background:#fff;border:1px solid var(--crta);border-radius:12px;
+  box-shadow:0 8px 26px rgba(0,0,0,.22);overflow:hidden;
+}
+.ure-okno[hidden]{display:none}
+.ure-oznaka{
+  flex:0 0 auto;background:#faf9f6;border-bottom:1px solid var(--crta);
+  font-size:13px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--sivo);text-align:center;padding:8px 0 7px;
+}
+.ure-seznam{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;touch-action:pan-y;
+  position:relative;   /* lega vrstice se meri od seznama, ne od okna nad njim */
+}
+.ura{
+  display:block;width:100%;height:44px;padding:0;
+  border:none;border-bottom:1px solid var(--crta);
+  background:#fff;color:var(--tekst);
+  font-family:inherit;font-size:19px;font-weight:700;line-height:44px;
+  text-align:center;cursor:pointer;
+}
+.ura:last-child{border-bottom:none}
+.ura.izbrana{background:var(--prosto);color:#fff}
 
 .zav-gumbi{display:flex;gap:9px;margin-top:14px}
 .zav-gumbi button{
@@ -315,6 +362,13 @@ body{
     <button class="preklic" id="gumbPreklic">Prekliči</button>
     <button class="potrdi-okno" id="gumbDodajPotrdi">Dodaj</button>
   </div>
+</div>
+
+<!-- KORAK 10: nas lasten seznam ur namesto sistemskega -->
+<div class="ure-senca" id="ureSenca" hidden></div>
+<div class="ure-okno" id="ureOkno" hidden>
+  <div class="ure-oznaka" id="ureOznaka">od</div>
+  <div class="ure-seznam" id="ureSeznam"></div>
 </div>
 
 <div class="obvestilo" id="obvestilo" hidden></div>
@@ -378,7 +432,14 @@ NABOR.dnevi.sort(function(a, b){ return ZAPOREDJE[a.kratica] - ZAPOREDJE[b.krati
 
     if (zdaj - zadnjiCas < PRAG_CAS && blizu){
       if (e.cancelable) e.preventDefault();   /* drugi tap zavrnjen */
-      zadnjiCas = 0;
+      /* KORAK8 (12. 9. 2026): zavrnjeni dotik si ZAPOMNIMO. Prej se je
+         stevec postavil na nic in je zato naslednji dotik vedno sel skozi.
+         IZMERJENO na Borutovem iPhonu s stranjo Preizkus-zascita.html:
+         pri hitrem pritiskanju je stara koda dala zaporedje
+         ne, DA, ne, DA, ne, DA - vsak drugi dotik je sel skozi in dva
+         prepuscena sta bila 353 do 401 tisocink narazen, iPhonovo okno za
+         dvojni tap pa je pod 366. Popravljena koda da ne, DA, DA, DA, DA. */
+      zadnjiCas = zdaj; zadnjiX = t.clientX; zadnjiY = t.clientY;
       return;
     }
     zadnjiCas = zdaj;
@@ -471,7 +532,7 @@ var drsi = false;             /* ali je trak vklopljen */
 var vidnihDni = 1;            /* koliko stolpcev je hkrati na zaslonu */
 var sirinaStolpca = NAJOZJI;
 var prviDan = 0;              /* kateri stolpec je skrajno levi */
-var elDrsnik = null, elCrtica = null;
+var elDrsnik = null, elCrtice = [];
 
 function razpored(){
   var naVoljo = document.documentElement.clientWidth - 24;   /* brez robov strani */
@@ -532,13 +593,18 @@ function stolpecUr(stran){
   return ure;
 }
 
+function razmik(){
+  var r = document.createElement('div');
+  r.className = 'razmik';
+  return r;
+}
 function stranskiStolpec(stran){
   var kos = document.createElement('div');
   kos.className = 'stran';
   kos.style.flex = '0 0 ' + SIRINA_UR + 'px';
-  if (drsi) kos.appendChild(puscica(stran, 'zgoraj'));
+  if (drsi){ kos.appendChild(razmik()); kos.appendChild(puscica(stran, 'zgoraj')); }
   kos.appendChild(stolpecUr(stran));
-  if (drsi) kos.appendChild(puscica(stran, 'spodaj'));
+  if (drsi){ kos.appendChild(puscica(stran, 'spodaj')); kos.appendChild(razmik()); }
   return kos;
 }
 
@@ -622,16 +688,23 @@ function narisiMrezo(){
 
   drsnik.appendChild(pas);
   okno.appendChild(drsnik);
-  okvir.appendChild(okno);
 
+  elCrtice = [];
   if (drsi){
-    var crtica = document.createElement('div');
-    crtica.className = 'crtica-pas';
-    crtica.appendChild(document.createElement('i'));
-    okvir.appendChild(crtica);
-    elCrtica = crtica;
-  } else {
-    elCrtica = null;
+    /* crtica je nad zgornjim in pod spodnjim trakom (Borut, 12. 9. 2026) */
+    var zgornja = document.createElement('div');
+    zgornja.className = 'crtica-pas';
+    zgornja.appendChild(document.createElement('i'));
+    okvir.appendChild(zgornja);
+    elCrtice.push(zgornja);
+  }
+  okvir.appendChild(okno);
+  if (drsi){
+    var spodnja = document.createElement('div');
+    spodnja.className = 'crtica-pas';
+    spodnja.appendChild(document.createElement('i'));
+    okvir.appendChild(spodnja);
+    elCrtice.push(spodnja);
   }
 
   elMreza.appendChild(okvir);
@@ -666,8 +739,8 @@ function osveziTrak(){
     if (je) g.querySelector('b').textContent =
       NABOR.dnevi[levo ? prviDan - 1 : prviDan + vidnihDni].kratica;
   }
-  if (elCrtica){
-    var i2 = elCrtica.querySelector('i');
+  for (var j = 0; j < elCrtice.length; j++){
+    var i2 = elCrtice[j].querySelector('i');
     i2.style.width = (vidnihDni / vseh * 100) + '%';
     i2.style.left  = (prviDan / vseh * 100) + '%';
   }
@@ -1050,10 +1123,14 @@ function izberiDan(di){
   naZaslon(di, prvaOdprta(di));
 }
 
-/* klik na ugasnjeno polje: OD in DO se oglasita enako kot gumb Dodaj */
-function klikNaUgasnjeno(){ if (izbraniDan === null) obvestiloDan(true); }
-elOkvirOd.addEventListener('click', klikNaUgasnjeno);
-elOkvirDo.addEventListener('click', klikNaUgasnjeno);
+/* KORAK10: klik na polje. Brez izbranega dneva se oglasi enako kot doslej,
+   z izbranim dnevom odpre nas lasten seznam ur. */
+function klikNaPolje(kdo){
+  if (izbraniDan === null){ obvestiloDan(true); return; }
+  odpriSeznamUr(kdo);
+}
+elOkvirOd.addEventListener('click', function(){ klikNaPolje('od'); });
+elOkvirDo.addEventListener('click', function(){ klikNaPolje('do'); });
 
 function poIzbiriUre(kdo){
   /* izpolnjeno polje obrobo izgubi; ce je cakalo prav ono, ne caka vec nihce,
@@ -1068,8 +1145,137 @@ function poIzbiriUre(kdo){
     vrsticaNaZaslon(izbraniDan, vrsticaIzUre(vrednost(elOd)));
   }
 }
+/* na racunalniku ostane sistemsko polje dosegljivo s tipkovnico; takrat gre
+   izbira po stari poti. Na dotik ga ni vec mogoce odpreti. */
 elOd.addEventListener('change', function(){ poIzbiriUre('od'); });
 elDo.addEventListener('change', function(){ poIzbiriUre('do'); });
+
+/* ====================================================================
+   KORAK 10 — IZBIRA URE Z NASIM LASTNIM SEZNAMOM (Borut, 13. 9. 2026)
+
+   ZAKAJ: sistemski seznam ur nariše iPhone sam. DOKUMENTACIJA MDN: dokler
+   je polje navadno sistemsko polje, se njegov spustni seznam izrise ZUNAJ
+   strani, njegova sirina je sirina najdaljse ure in postavi se sam. Borut
+   zeli okno na sredini, ure nacentrirane in okno nad gumboma OD in DO.
+   Edina pot, ki da vse troje, je nas lasten seznam.
+
+   STRANSKI DOBICEK: nasa koda ve za vsak dotik, tudi ce se ura ne spremeni.
+   S tem se sam od sebe zapre ROBNI PRIMER (starс izbere isto uro kot prej):
+   obrobi se premakneta, gumb Shrani pa ostane bled, ker se ura ni spremenila.
+
+   KAKO SE VRSTICA IZBERE: pritisk in spust na ISTI vrstici, s premikom
+   prsta pod 10 pik.
+   - klika ne uporabljamo. IZMERJENO 12. 9. 2026 na Borutovem iPhonu: klik
+     ni zanesljiv, ker ga zascita proti povecavi lahko pogoltne.
+   - samega pritiska ne uporabljamo: prst se vrstice dotakne tudi takrat,
+     ko hoce seznam samo podrsati. Pritisk sam bi tak dotik prestel za izbiro.
+   - meja 10 pik je PREDPOSTAVKA, izpeljana iz visine vrstice 44 pik. Ni
+     izmerjena na njegovi napravi in jo je ob preizkusu mogoce popraviti.
+
+   LEGA (Borut, 13. 9. 2026): spodnji rob seznama je VEDNO nad poljema OD
+   in DO, ne glede na stevilo vrstic. Zato je seznam pribit s "bottom" in
+   raste navzgor, vodoravno pa stoji na sredini zaslona.
+   ==================================================================== */
+var elUreSenca  = document.getElementById('ureSenca');
+var elUreOkno   = document.getElementById('ureOkno');
+var elUreOznaka = document.getElementById('ureOznaka');
+var elUreSeznam = document.getElementById('ureSeznam');
+var elPar       = document.querySelector('.par');
+
+var odprtoPolje = null;      /* katero polje polnimo: 'od' | 'do' | null */
+var PRAG_PREMIK = 10;        /* pik; vec pomeni drsanje, ne izbiro */
+var pritisnjena = null, pritisnjenX = 0, pritisnjenY = 0;
+
+function poljeUr(kdo){ return kdo === 'od' ? elOd : elDo; }
+
+/* spodnji rob seznama je vedno nad poljema OD in DO */
+function postaviSeznamUr(){
+  if (elUreOkno.hidden) return;
+  var spodaj = elPar.getBoundingClientRect().top - 10;
+  elUreOkno.style.bottom    = (window.innerHeight - spodaj) + 'px';
+  elUreOkno.style.maxHeight = Math.max(88, spodaj - 12) + 'px';
+}
+
+function odpriSeznamUr(kdo){
+  var el = poljeUr(kdo);
+  var izbrana = vrednost(el), izbranaEl = null;
+
+  elUreSeznam.innerHTML = '';
+  for (var i = 0; i < el.options.length; i++){
+    var v = el.options[i].value;
+    if (v === '') continue;                    /* crtica ni ura */
+    var m = +v;
+    var vrstica = document.createElement('button');
+    vrstica.type = 'button';
+    vrstica.className = 'ura' + (m === izbrana ? ' izbrana' : '');
+    vrstica.textContent = vNapis(m);
+    vrstica.dataset.min = m;
+    if (m === izbrana) izbranaEl = vrstica;
+    elUreSeznam.appendChild(vrstica);
+  }
+  if (!elUreSeznam.children.length) return;    /* varovalka; ne sme se zgoditi */
+
+  odprtoPolje = kdo;
+  elUreOznaka.textContent = kdo;
+  elUreSenca.hidden = false;
+  elUreOkno.hidden  = false;
+  postaviSeznamUr();
+
+  /* ce je ura ze izbrana, se seznam odpre pri njej; sicer na vrhu */
+  if (izbranaEl){
+    elUreSeznam.scrollTop =
+      izbranaEl.offsetTop - (elUreSeznam.clientHeight - izbranaEl.offsetHeight)/2;
+  } else {
+    elUreSeznam.scrollTop = 0;
+  }
+}
+
+function zapriSeznamUr(){
+  elUreOkno.hidden  = true;
+  elUreSenca.hidden = true;
+  odprtoPolje = null;
+  pritisnjena = null;
+}
+
+function izberiUro(m){
+  var kdo = odprtoPolje;
+  if (!kdo) return;
+  poljeUr(kdo).value = String(m);
+  zapriSeznamUr();
+  poIzbiriUre(kdo);          /* ista pot kot doslej pri sistemskem polju */
+}
+
+function vrsticaUre(cilj){ return cilj && cilj.closest ? cilj.closest('.ura') : null; }
+
+elUreSeznam.addEventListener('pointerdown', function(e){
+  pritisnjena = vrsticaUre(e.target);
+  pritisnjenX = e.clientX; pritisnjenY = e.clientY;
+});
+elUreSeznam.addEventListener('pointerup', function(e){
+  var v  = vrsticaUre(e.target);
+  var dx = e.clientX - pritisnjenX, dy = e.clientY - pritisnjenY;
+  var mirno = Math.sqrt(dx*dx + dy*dy) < PRAG_PREMIK;
+  var bila = pritisnjena;
+  pritisnjena = null;
+  if (v && v === bila && mirno) izberiUro(+v.dataset.min);
+});
+elUreSeznam.addEventListener('pointercancel', function(){ pritisnjena = null; });
+
+/* tipkovnica na racunalniku: Enter ali preslednica na vrstici */
+elUreSeznam.addEventListener('keydown', function(e){
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var v = vrsticaUre(e.target);
+  if (!v) return;
+  e.preventDefault();
+  izberiUro(+v.dataset.min);
+});
+
+/* dotik zunaj seznama zapre SAMO seznam, ne celega okna */
+elUreSenca.addEventListener('click', zapriSeznamUr);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape' && !elUreOkno.hidden) zapriSeznamUr();
+});
+window.addEventListener('resize', postaviSeznamUr);
 
 function odpriOkno(){
   vPopravku = null; staraOd = null; staraDo = null;
@@ -1103,6 +1309,7 @@ function odpriOknoZaPopravek(x){
 }
 
 function zapriOkno(){
+  zapriSeznamUr();          /* KORAK10: z oknom se zapre tudi seznam ur */
   elZavesa.hidden = true;
   elSenca.hidden  = true;
   vPopravku = null; staraOd = null; staraDo = null; caka = 'nobena';
