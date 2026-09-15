@@ -26,7 +26,7 @@
    KORAK 10 izbira ure z nasim lastnim seznamom               (13. 9. 2026)
    KORAK 10 popravki po preizkusu na iPhonu + zelja 2         (13. 9. 2026)
 
-   RAZLICICA-13SEP-NAZAJ-7DNI
+   RAZLICICA-15SEP-PANY-7DNI
    Ta zig je v vsaki razlicici drugacen. Sluzi samo preverjanju, ali je
    objavljena res nova koda: Cmd+F v izvorni kodi. Naslednja razlicica
    dobi nov zig, zato star nikoli ne more pokazati napacnega izida.
@@ -299,13 +299,21 @@ body{
 .ure-seznam{
   flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
-  /* pan-y = drsenje seznama gor in dol; pinch-zoom = scipanje z dvema prstoma
-     deluje tudi NA seznamu (Borut, 13. 9. 2026: seznam zasede vecino zaslona,
-     zato je ob njem premalo prostora za scipanje).
-     PREVERJENO na caniuse: Safari na iPhonu pozna vrednost pinch-zoom od
-     razlicice 13. Zascita proti povecavi izvzame vsak gib z vec kot enim
-     prstom, zato se s scipanjem ne srecata. */
-  touch-action:pan-y pinch-zoom;
+  /* SAMO pan-y. Beseda pinch-zoom je bila tu od 13. do 15. 9. 2026, da bi
+     scipanje delovalo tudi na seznamu.
+
+     IZMERJENO (primerjava razlicic, 15. 9. 2026): pri zigu -13SEP-CRTICA je
+     izbira ure na Borutovem iPhonu delovala, pri -13SEP-NAZAJ pa se je seznam
+     ob dotiku ure pogosto samo zaprl in ure ni vpisal, pri OD in pri DO,
+     obcasno pa je delovalo. Primerjava obeh datotek pokaze eno samo delujoco
+     razliko med njima: prav to besedo. Vse drugo so komentarji in preureditev
+     dveh vrstic v eno z istim izracunom.
+
+     ZAKAJ beseda podre izbiro, NI ZNANO. Ni izracuna in ni vira; vzrok je
+     zozan z izlocanjem, mehanizem pa ne. Zato je beseda odstranjena.
+     Cena: scipanje z dvema prstoma na samem seznamu spet ne deluje, deluje
+     pa povsod okrog njega in poveca tudi seznam (Borut izmeril 13. 9. 2026). */
+  touch-action:pan-y;
   position:relative;   /* lega vrstice se meri od seznama, ne od okna nad njim */
 }
 .ura{
